@@ -1,7 +1,7 @@
 from sqlalchemy import or_
 from src.db.database import get_db
-from src.db.models import Users, NDTnewMortgage
-from src.services.user_login1.serializer import UsersSerializer, QuerySerializer
+from src.db.models import Users, NDTnewMortgage,U_Queries
+from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer
 
 
 class User_Schena():
@@ -37,19 +37,23 @@ class Query_Schema():
               loantypessub = None
             ):
 
+
         if state:
-            final_data = data.filter(
+            data = data.filter(
                 NDTnewMortgage.mState.in_(state)
             )
 
+        # final_data = final_data.first()
+
+
         if county:
-            final_data = data.filter(or_(
+            data = data.filter(or_(
                 NDTnewMortgage.mCounty.in_(county),
                 NDTnewMortgage.mState.in_(state)
             ))
 
         if year:
-            final_data = data.filter(
+            data = data.filter(
                 NDTnewMortgage.mYear.in_(year)
             )
 
@@ -57,44 +61,52 @@ class Query_Schema():
             if lendertype == "Any":
                 pass
             else:
-                final_data =  data.filter(
+                data =  data.filter(
                     NDTnewMortgage.mLenderType == lendertype
                 )
-
         if lenders:
-            final_data = data.filter(
+            data = data.filter(
                 NDTnewMortgage.mLenderName.in_(lenders)
             )
 
         if loantypessub:
             if "mARM" in loantypessub:
-                final_data = data.filter(
+                data = data.filter(
                     NDTnewMortgage.mARM == "T"
                 )
 
             if "mFHA" in loantypessub:
-                final_data = data.filter(
+                data = data.filter(
                     NDTnewMortgage.mFHA == "T"
                 )
 
             if "mHMEQ" in loantypessub:
-                final_data = data.filter(
+                data = data.filter(
                     NDTnewMortgage.mHMEQ == "T"
                 )
 
             if "mHELOC" in loantypessub:
-                final_data = data.filter(
+                data = data.filter(
                     NDTnewMortgage.mHELOC == "T"
                 )
 
             if "mReverse" in loantypessub:
-                final_data = data.filter(
+                data = data.filter(
                     NDTnewMortgage.mReverse == "T"
                 )
 
             if "mVHA" in loantypessub:
-                final_data = data.filter(
+                data = data.filter(
                     NDTnewMortgage.mFHA == "T"
                 )
 
-        return final_data
+        return data
+
+    @classmethod
+    async def saveq(cls,request,db):
+        # print("i am type",type("request"))
+        saveq = U_Queries(q_parms=request)
+        db.add(saveq)
+        db.commit()
+        db.refresh(saveq)
+        return saveq

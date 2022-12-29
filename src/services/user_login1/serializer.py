@@ -45,3 +45,7 @@ class QuerySerializer(BaseModel):
             }
     year: list
     zipcode: list
+
+
+class SaveSerializer(BaseModel):
+    pass

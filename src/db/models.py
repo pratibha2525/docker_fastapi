@@ -1,6 +1,6 @@
 import sqlalchemy as db
 from datetime import datetime
-from .database import Base
+from src.db.database import Base
 
 
 
@@ -78,7 +78,6 @@ class Users(Base):
 
 
 # /// Query_Save_Store
-
 
 
 class U_Queries(Base):

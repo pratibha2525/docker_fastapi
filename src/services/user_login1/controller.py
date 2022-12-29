@@ -4,14 +4,16 @@ from http import HTTPStatus
 from pydantic import BaseModel
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.sql import alias
+from fastapi import APIRouter,Depends
+from datetime import datetime
 
 from src.utils.response_utils import ResponseUtil
-from src.db.models import Users, NDTnewMortgage
+from src.db.models import Users, NDTnewMortgage,U_Queries
 from src.utils.sso import generate_token
 from src.config.constant import UserConstant
 from src.utils.logger_utils import LoggerUtil
 from src.services.user_login1.schema import User_Schena,Query_Schema
-from src.services.user_login1.serializer import QuerySerializer, UsersSerializer
+from src.services.user_login1.serializer import QuerySerializer, UsersSerializer,SaveSerializer
 
 
 class Settings(BaseModel):
@@ -53,7 +55,7 @@ class Users_Module():
                 if (user.usr_username==request.usr_username) and (user.usr_password==request.usr_password):
                     access_token=Authorize.create_access_token(subject=user.usr_username)
                     refresh_token=Authorize.create_refresh_token(subject=user.usr_username)
-                    data = {"refresh_token": refresh_token}
+                    data = {"access_token": access_token,"refresh_token": refresh_token}
                     LoggerUtil.info(UserConstant.LOGIN_SUCCESS)
                     return ResponseUtil.success_response(data,message=UserConstant.LOGIN_SUCCESS)
                 else:
@@ -69,41 +71,73 @@ class Users_Module():
 
 
     @classmethod
-    async def query(cls, request:QuerySerializer,db):
+    async def query(cls, request:QuerySerializer,db,Authorize):
 
-        # data = Query_Schema.master_query(db)
+        # try:
+        #     Authorize.jwt_required()
+        # except Exception as e:
+        #     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token")
 
-        # if request.summarizeby == "State Level":
-        #     state = []
-        #     for state_value in request.state:
-        #         state.append(state_value["state"])
-        #     data = Query_Schema.query(data,state=request.state)
-        # elif request.summarizeby == "County Level":
-        #     county = []
-        #     state = []
-        #     for county_value in request.county:
-        #         county.append(county_value["county"])
+        # current_user=Authorize.get_jwt_subject()
+
+        data = Query_Schema.master_query(db)
+
+        if request.summarizeby == "State Level":
+            state = []
+            for state_value in request.state:
+                state.append(state_value["state"])
+            data = Query_Schema.query(data,state=request.state)
+        elif request.summarizeby == "County Level":
+            county = []
+            state = []
+            for county_value in request.county:
+                county.append(county_value["county"])
             
-        #     for state_value in request.state:
-        #         state.append(state_value["state"])
-        #     data = Query_Schema.query(data,county=county,state=state)
+            for state_value in request.state:
+                state.append(state_value["state"])
+            data = Query_Schema.query(data,county=county,state=state)
 
-        # if request.year != []:
-        #     data = Query_Schema.query(data,year=request.year)
+        if request.year != []:
+            data = Query_Schema.query(data,year=request.year)
 
-        # if request.lendertype != "":
-        #     data = Query_Schema.query(data,lendertype=request.lendertype)
-        
-        # if request.lenders != []:
-        #     data = Query_Schema.query(data,lenders=request.lenders)
- 
-        # if request.loantypessub != []:
-        #     loantypessub = Helper.loan_types_sub_convert(request.loantypessub)
-        #     print(loantypessub)
-        #     data = Query_Schema.query(data,loantypessub=loantypessub)
+        if request.lenders != []:
+            data = Query_Schema.query(data,lenders=request.lenders)
+
+        if request.loantypessub != []:
+            loantypessub = Helper.loan_types_sub_convert(request.loantypessub)
+            data = Query_Schema.query(data,loantypessub=loantypessub)
 
         # data = data.all()
-        
+        craeted_at = str(datetime.now())
+        proprty_type = request.usecode["usecodegroup"] + request.usecode["usecode"]
+
+        reportheader_ary = []
+        if request.summarizeby == "State Level":
+            state_str = ' ,'.join([str(elem) for elem in state])
+            regions = f"All Regions in {state_str}"
+
+        elif request.summarizeby == "County Level":
+            county_lst = []
+            for i in request.county:
+                county_lst.append(i["county"] + " County")
+                county_lst.append(i["state"] +" ")
+            county_str = ' ,'.join([str(elem) for elem in county_lst])
+            regions = county_str
+
+        for year in request.year:
+            for period in request.period:
+                ary = []
+                ary.append(proprty_type)
+                ary.append("Skyward Techno.")
+                ary.append(regions)
+                ary.append(f"{year} {period}")
+                ary.append(request.reportrank)
+                ary.append(craeted_at)
+                reportheader_ary.append(ary)
+
+        subheader = ["All Mortgages","Purchase Mortgages","Non Purchase Mortgages",f"Mkt Shr by {request.reportrank}(%)"]
+        subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
+
         final_data = {}
         final_data["reporttype"] = request.reporttype
         final_data["reportrank"] = request.reportrank
@@ -142,8 +176,8 @@ class Users_Module():
 
         final_data["ifilter"] = ""
         final_data["report_ary"] = ""
-        final_data["reportheader_ary"] = ""
-        
+        final_data["reportheader_ary"] = reportheader_ary
+
         if request.brokerlenderbypass == True:
             final_data["brokerflaginside"] = True
             final_data["brokerflag"] = True
@@ -153,12 +187,19 @@ class Users_Module():
 
         final_data["sql"] = ""
         final_data["report"] = ""
+        final_data["subheader"] = subheader
+        final_data["subtitle"] = subtitle
 
-        return ResponseUtil.success_response(final_data,message=(len(final_data.keys())))
+        return ResponseUtil.success_response(final_data,message="Success")
+    
+
                 
     @classmethod
-    async def saveq(cls):
-        pass
+    async def saveq(cls, request:SaveSerializer,db):
+        print("i am request",(request.usecod))
+        save_query = Query_Schema.saveq(request=str(request),db=db)
+        return save_query
+
 
     @classmethod
     async def savelistq(cls):
