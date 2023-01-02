@@ -55,6 +55,9 @@ class Users_Module():
                 if (user.usr_username==request.usr_username) and (user.usr_password==request.usr_password):
                     access_token=Authorize.create_access_token(subject=user.usr_username)
                     refresh_token=Authorize.create_refresh_token(subject=user.usr_username)
+                    # expires = datetime.timedelta(days=1)
+                    # token = Authorize.create_access_token(subject="test",expires_time=expires)
+                    # return {"token": token}
                     data = {"access_token": access_token,"refresh_token": refresh_token}
                     LoggerUtil.info(UserConstant.LOGIN_SUCCESS)
                     return ResponseUtil.success_response(data,message=UserConstant.LOGIN_SUCCESS)
@@ -107,11 +110,15 @@ class Users_Module():
             loantypessub = Helper.loan_types_sub_convert(request.loantypessub)
             data = Query_Schema.query(data,loantypessub=loantypessub)
 
+        data = data.all()
+
         # data = data.all()
         craeted_at = str(datetime.now())
         proprty_type = request.usecode["usecodegroup"] + request.usecode["usecode"]
 
         reportheader_ary = []
+        
+        # if customregion == "True"
         if request.summarizeby == "State Level":
             state_str = ' ,'.join([str(elem) for elem in state])
             regions = f"All Regions in {state_str}"
@@ -134,6 +141,21 @@ class Users_Module():
                 ary.append(request.reportrank)
                 ary.append(craeted_at)
                 reportheader_ary.append(ary)
+                
+        
+        row_data = []
+        for i in data:
+            row_data.append(i.mLenderName)
+        print(len(row_data))
+
+        count = 0
+        back_count = int(request.lenderstodisplay)
+        increment_count = int(request.lenderstodisplay)
+        report_ary = []
+        for i in range(len(reportheader_ary)):
+            report_ary.append(row_data[count:back_count])
+            count = back_count
+            back_count = (back_count+increment_count)
 
         subheader = ["All Mortgages","Purchase Mortgages","Non Purchase Mortgages",f"Mkt Shr by {request.reportrank}(%)"]
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
@@ -175,7 +197,7 @@ class Users_Module():
             final_data["lenderlen"] = len(request.lenders)
 
         final_data["ifilter"] = ""
-        final_data["report_ary"] = ""
+        final_data["report_ary"] = report_ary
         final_data["reportheader_ary"] = reportheader_ary
 
         if request.brokerlenderbypass == True:
