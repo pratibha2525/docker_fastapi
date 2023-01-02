@@ -151,11 +151,19 @@ class Users_Module():
         count = 0
         back_count = int(request.lenderstodisplay)
         increment_count = int(request.lenderstodisplay)
-        report_ary = []
+        row_report_ary = []
         for i in range(len(reportheader_ary)):
-            report_ary.append(row_data[count:back_count])
+            row_report_ary.append(row_data[count:back_count])
             count = back_count
             back_count = (back_count+increment_count)
+        
+        report_ary = []
+        for i in row_report_ary:
+            internal_row_data = []
+            for j in i:
+                blank_data = j +"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-"
+                internal_row_data.append([blank_data])
+            report_ary.append(internal_row_data)
 
         subheader = ["All Mortgages","Purchase Mortgages","Non Purchase Mortgages",f"Mkt Shr by {request.reportrank}(%)"]
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
