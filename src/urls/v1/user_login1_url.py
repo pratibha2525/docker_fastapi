@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from src.db.database import get_db
 from src.services.user_login1.controller import Users_Module
-from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer
+from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer, CsvSerializer
 
 
 ##### MARKET SHARE MODULE (login, run_query, save_query, load_query) #####
@@ -32,14 +32,21 @@ async def save_q_name():
     return await Users_Module.save_q_name()
 
 #####
-@router.post("/xls/")
-async def xls():
-    pass
 
-@router.post("/txt/")
-async def txt():
-    pass
+
 
 @router.post("/csv/")
-async def csv():
-    pass
+async def csv(request:CsvSerializer):
+    return await Users_Module.csv(request)
+
+@router.post("/txt/")
+async def txt(request:CsvSerializer):
+    return await Users_Module.txt(request)
+
+@router.post("/xls/")
+async def xls(request:CsvSerializer):
+    return await Users_Module.xls(request)
+
+@router.post("/pdf/")
+async def pdf(request:CsvSerializer):
+    return await Users_Module.pdf(request)

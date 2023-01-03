@@ -49,3 +49,9 @@ class QuerySerializer(BaseModel):
 
 class SaveSerializer(BaseModel):
     pass
+
+class CsvSerializer(BaseModel):
+    cur_report_ary: list
+    cur_report_header_ary: list
+    exporttype: str
+    brokerflag: bool

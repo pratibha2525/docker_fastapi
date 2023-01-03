@@ -1,3 +1,11 @@
+import csv
+import pathlib
+import uuid
+import csv
+import boto3
+
+from botocore.config import Config
+from botocore.exceptions import NoCredentialsError, ClientError
 from fastapi import FastAPI, HTTPException,status
 from typing import List
 from http import HTTPStatus
@@ -13,8 +21,11 @@ from src.utils.sso import generate_token
 from src.config.constant import UserConstant
 from src.utils.logger_utils import LoggerUtil
 from src.services.user_login1.schema import User_Schena,Query_Schema
-from src.services.user_login1.serializer import QuerySerializer, UsersSerializer,SaveSerializer
+from src.services.user_login1.serializer import QuerySerializer, UsersSerializer,SaveSerializer,CsvSerializer
 
+
+ACCESS_KEY = 'AKIARTNRWVPJUEIIT3GW'
+SECRET_KEY = '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'
 
 class Settings(BaseModel):
     authjwt_secret_key:str='d1ef9b7d36d6fce56880edbf90c8d6949961db163e4e573984d9675a639e6a8c'
@@ -37,6 +48,38 @@ class Helper():
                 loan_types_sub_convert.append(loan_types_sub)
 
         return loan_types_sub_convert
+
+
+    @classmethod
+    def upload_to_aws(cls,local_file, bucket, s3_file):
+        s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY,
+                        aws_secret_access_key=SECRET_KEY)
+
+        try:
+            s3.upload_file(local_file, bucket, s3_file)
+            print("Upload Successful")
+            return True
+        except FileNotFoundError:
+            print("The file was not found")
+            return False
+        except Exception as e:
+            print(e)
+            return f"{e}"
+
+    @classmethod
+    def download_to_aws(cls,bucket_name,key,expiry=3600):
+
+        s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY,
+                            aws_secret_access_key=SECRET_KEY)
+        try:
+            response = s3.generate_presigned_url('get_object',
+                                            Params={'Bucket': bucket_name,'Key': key},
+                                                    )
+            print(response)
+            return response
+        except ClientError as e:
+            print(e)
+            return True
 
 ##### MARKET SHARE MODULE (login, run_query, save_query, load_query) #####
 
@@ -89,7 +132,7 @@ class Users_Module():
             state = []
             for state_value in request.state:
                 state.append(state_value["state"])
-            data = Query_Schema.query(data,state=request.state)
+            data = Query_Schema.query(data,state=state)
         elif request.summarizeby == "County Level":
             county = []
             state = []
@@ -114,11 +157,18 @@ class Users_Module():
 
         # data = data.all()
         craeted_at = str(datetime.now())
-        proprty_type = request.usecode["usecodegroup"] + request.usecode["usecode"]
+        if request.usecode["usecodegroup"] == "ANY" and  request.usecode["usecode"] == "All":
+            proprty_type = "All Properties"
+        elif request.usecode["usecodegroup"] == "RES" and  request.usecode["usecode"] == "All":
+            proprty_type = "All Residentials"
+        elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
+            proprty_type = "All Commericals"
+        else:
+            proprty_type = request.usecode["usecodegroup"] + " " + request.usecode["usecode"]
 
         reportheader_ary = []
         
-        # if customregion == "True"
+        # if customregion == "True"""
         if request.summarizeby == "State Level":
             state_str = ' ,'.join([str(elem) for elem in state])
             regions = f"All Regions in {state_str}"
@@ -162,7 +212,8 @@ class Users_Module():
             internal_row_data = []
             for j in i:
                 blank_data = j +"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-"
-                internal_row_data.append([blank_data])
+                internal_row_data.append([j , "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"])
+                print(internal_row_data)
             report_ary.append(internal_row_data)
 
         subheader = ["All Mortgages","Purchase Mortgages","Non Purchase Mortgages",f"Mkt Shr by {request.reportrank}(%)"]
@@ -238,3 +289,133 @@ class Users_Module():
     @classmethod
     async def save_q_name(cls):
         pass
+
+    @classmethod
+    async def csv(cls,request:CsvSerializer):
+
+        cur_report_header_ary = request.cur_report_header_ary
+        first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
+
+        cur_report_ary = request.cur_report_ary
+        subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
+
+        file_name = uuid.uuid4()
+        current_path = pathlib.Path().absolute()
+        path = f'{current_path}/src/files'
+        print(current_path)
+        with open(f'{path}/{file_name}.csv', 'w', encoding='UTF8', newline='') as f:
+            writer = csv.writer(f)
+
+            writer.writerow(first_header)
+
+            for i in range (len(cur_report_header_ary)):
+                writer.writerow([cur_report_header_ary[i][2]])
+                writer.writerow([cur_report_header_ary[i][3]])
+                writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
+                writer.writerow(subtitle)
+                writer.writerows(cur_report_ary[i])
+
+        Helper.upload_to_aws(local_file=f'{path}/{file_name}.csv',bucket="loanapp-s3",s3_file=f'{file_name}.csv')
+
+        url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.csv')
+
+        url = (url.split("?")[0])
+
+        return ResponseUtil.success_response(url,message="Success")
+
+    @classmethod
+    async def txt(cls,request:CsvSerializer):
+
+        cur_report_header_ary = request.cur_report_header_ary
+        first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
+
+        cur_report_ary = request.cur_report_ary
+        subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
+
+        file_name = uuid.uuid4()
+        current_path = pathlib.Path().absolute()
+        path = f'{current_path}/src/files'
+        print(current_path)
+        with open(f'{path}/{file_name}.txt', 'w', encoding='UTF8', newline='') as f:
+            writer = csv.writer(f)
+
+            writer.writerow(first_header)
+
+            for i in range (len(cur_report_header_ary)):
+                writer.writerow([cur_report_header_ary[i][2]])
+                writer.writerow([cur_report_header_ary[i][3]])
+                writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
+                writer.writerow(subtitle)
+                writer.writerows(cur_report_ary[i])
+
+        Helper.upload_to_aws(local_file=f'{path}/{file_name}.txt',bucket="loanapp-s3",s3_file=f'{file_name}.txt')
+        
+        url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.txt')
+        url = (url.split("?")[0])
+
+        return ResponseUtil.success_response(url,message="Success")
+
+    @classmethod
+    async def xls(cls,request:CsvSerializer):
+
+        cur_report_header_ary = request.cur_report_header_ary
+        first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
+
+        cur_report_ary = request.cur_report_ary
+        subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
+
+        file_name = uuid.uuid4()
+        current_path = pathlib.Path().absolute()
+        path = f'{current_path}/src/files'
+        print(current_path)
+        with open(f'{path}/{file_name}.xls', 'w', encoding='UTF8', newline='') as f:
+            writer = csv.writer(f)
+
+            writer.writerow(first_header)
+
+            for i in range (len(cur_report_header_ary)):
+                writer.writerow([cur_report_header_ary[i][2]])
+                writer.writerow([cur_report_header_ary[i][3]])
+                writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
+                writer.writerow(subtitle)
+                writer.writerows(cur_report_ary[i])
+
+        Helper.upload_to_aws(local_file=f'{path}/{file_name}.xls',bucket="loanapp-s3",s3_file=f'{file_name}.xls')
+
+        url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.xls')
+        url = (url.split("?")[0])
+
+        return ResponseUtil.success_response(url,message="Success")
+
+            
+    @classmethod
+    async def pdf(cls,request:CsvSerializer):
+
+        cur_report_header_ary = request.cur_report_header_ary
+        first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
+
+        cur_report_ary = request.cur_report_ary
+        subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
+
+        file_name = uuid.uuid4()
+        current_path = pathlib.Path().absolute()
+        path = f'{current_path}/src/files'
+        print(current_path)
+        with open(f'{path}/{file_name}.pdf', 'w', encoding='UTF8', newline='') as f:
+            writer = csv.writer(f)
+
+            writer.writerow(first_header)
+
+            for i in range (len(cur_report_header_ary)):
+                writer.writerow([cur_report_header_ary[i][2]])
+                writer.writerow([cur_report_header_ary[i][3]])
+                writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
+                writer.writerow(subtitle)
+                writer.writerows(cur_report_ary[i])
+        
+        Helper.upload_to_aws(local_file=f'{path}/{file_name}.pdf',bucket="loanapp-s3",s3_file=f'{file_name}.pdf')
+        
+        url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.pdf')
+        url = (url.split("?")[0])
+
+        return ResponseUtil.success_response(url,message="Success")
