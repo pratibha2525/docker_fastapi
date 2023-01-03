@@ -168,30 +168,66 @@ class Users_Module():
 
         reportheader_ary = []
         
-        # if customregion == "True"""
-        if request.summarizeby == "State Level":
-            state_str = ' ,'.join([str(elem) for elem in state])
-            regions = f"All Regions in {state_str}"
+        if request.customregion == True:
 
-        elif request.summarizeby == "County Level":
-            county_lst = []
-            for i in request.county:
-                county_lst.append(i["county"] + " County")
-                county_lst.append(i["state"] +" ")
-            county_str = ' ,'.join([str(elem) for elem in county_lst])
-            regions = county_str
+            if request.summarizeby == "State Level":
+                state_str = ' ,'.join([str(elem) for elem in state])
+                regions = f"All Regions in {state_str}"
 
-        for year in request.year:
-            for period in request.period:
-                ary = []
-                ary.append(proprty_type)
-                ary.append("Skyward Techno.")
-                ary.append(regions)
-                ary.append(f"{year} {period}")
-                ary.append(request.reportrank)
-                ary.append(craeted_at)
-                reportheader_ary.append(ary)
+            elif request.summarizeby == "County Level":
+                county_lst = []
+                for i in request.county:
+                    county_lst.append(i["county"] + " County")
+                    county_lst.append(i["state"] +" ")
+                county_str = ' ,'.join([str(elem) for elem in county_lst])
+                regions = county_str
+
+            for year in request.year:
+                for period in request.period:
+                    ary = []
+                    ary.append(proprty_type)
+                    ary.append("Skyward Techno.")
+                    ary.append(regions)
+                    ary.append(f"{year} {period}")
+                    ary.append(request.reportrank)
+                    ary.append(craeted_at)
+                    reportheader_ary.append(ary)
+        else:
+            if request.summarizeby == "State Level":
+                states = []
+                for state_value in request.state:
+                    states.append(state_value["state"])
+
+                for state in states:
+                    for year in request.year:
+                        for period in request.period:
+                            ary = []
+                            ary.append(proprty_type)
+                            ary.append("Skyward Techno.")
+                            ary.append(f"All Regions in State of {state}")
+                            ary.append(f"{year} {period}")
+                            ary.append(request.reportrank)
+                            ary.append(craeted_at)
+                            reportheader_ary.append(ary)
+
+            elif request.summarizeby == "County Level":
+
+                county_lst = []
+                for i in request.county:
+                    county_lst.append([i["county"] ,i["state"]])
                 
+                for county in county_lst:
+                    for year in request.year:
+                        for period in request.period:
+                            ary = []
+                            ary.append(proprty_type)
+                            ary.append("Skyward Techno.")
+                            ary.append(f"All Regions in {county[0]} County, {county[1]}")
+                            ary.append(f"{year} {period}")
+                            ary.append(request.reportrank)
+                            ary.append(craeted_at)
+                            reportheader_ary.append(ary)
+
         
         row_data = []
         for i in data:
