@@ -3,7 +3,9 @@ import pathlib
 import uuid
 import csv
 import boto3
+import os
 
+from fpdf import FPDF
 from botocore.config import Config
 from botocore.exceptions import NoCredentialsError, ClientError
 from fastapi import FastAPI, HTTPException,status
@@ -437,7 +439,7 @@ class Users_Module():
         current_path = pathlib.Path().absolute()
         path = f'{current_path}/src/files'
         print(current_path)
-        with open(f'{path}/{file_name}.pdf', 'w', encoding='UTF8', newline='') as f:
+        with open(f'{path}/{file_name}.txt', 'w', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
 
             writer.writerow(first_header)
@@ -448,6 +450,22 @@ class Users_Module():
                 writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
                 writer.writerow(subtitle)
                 writer.writerows(cur_report_ary[i])
+        
+        '''
+        PDF converter
+        '''
+        
+        txt_reading = open(f'{path}/{file_name}.txt', "r")
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size = 9)
+        
+        for text in txt_reading:
+            pdf.cell(80, 7, txt = text, ln = 1, align = 'L')
+            
+        pdf.output(f"{path}/{file_name}.pdf")
+        
+        os.remove(f'{path}/{file_name}.txt')
         
         Helper.upload_to_aws(local_file=f'{path}/{file_name}.pdf',bucket="loanapp-s3",s3_file=f'{file_name}.pdf')
         
