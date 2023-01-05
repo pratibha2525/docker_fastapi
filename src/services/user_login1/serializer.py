@@ -16,6 +16,7 @@ class QuerySerializer(BaseModel):
     county: list
     customregion: bool
     excl_usahud: bool
+    isdaterange : bool
     lenders: list
     lenderstodisplay: constr(min_length=1)
     lendertype: constr(min_length=1)
@@ -43,12 +44,60 @@ class QuerySerializer(BaseModel):
                 "usecode": str,
                 "usecodegroup": str
             }
+    daterange = {
+                "startdate": constr(min_length=0),
+                "enddate": constr(min_length=0)
+            }
     year: list
     zipcode: list
 
 
 class SaveSerializer(BaseModel):
-    pass
+    q_name: str
+    usr_id: int
+    model = {
+        "allowcustomregion": bool,
+        "brokerlenderbypass": bool,
+        "censustract": list,
+        "citytown": list,
+        "county": list,
+        "customregion": bool,
+        "excl_usahud": bool,
+        "isdaterange" : bool,
+        "lenders": list,
+        "lenderstodisplay": constr(min_length=1),
+        "lendertype": constr(min_length=1),
+        "loanmax": constr(min_length=0),
+        "loanmin": constr(min_length=0),
+        "loanpurpose": constr(min_length=1),
+        "loantypes": constr(min_length=1),
+        "loantypessub": list,
+        "loantypessubbypass": bool,
+        "lt" : {
+            "lendertypesetup": bool
+        },
+        "ltext": constr(min_length=0),
+        "period": list,
+        "refionly": bool,
+        "reportformat": constr(min_length=1),
+        "reporting": dict,
+        "reportrank": constr(min_length=1),
+        "reporttype": constr(min_length=1),
+        "state": list,
+        "summarizeby": constr(min_length=1),
+        "usecode" : {
+            "_uiSelectChoiceDisabled": bool,
+            "id": int,
+            "usecode": str,
+            "usecodegroup": str
+        },
+        "daterange" : {
+                "startdate": constr(min_length=0),
+                "enddate": constr(min_length=0)
+            },
+        "year": list,
+        "zipcode": list
+    }
 
 class CsvSerializer(BaseModel):
     cur_report_ary: list

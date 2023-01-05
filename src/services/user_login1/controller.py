@@ -16,6 +16,7 @@ from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.sql import alias
 from fastapi import APIRouter,Depends
 from datetime import datetime
+from dotenv import load_dotenv
 
 from src.utils.response_utils import ResponseUtil
 from src.db.models import Users, NDTnewMortgage,U_Queries
@@ -25,12 +26,13 @@ from src.utils.logger_utils import LoggerUtil
 from src.services.user_login1.schema import User_Schena,Query_Schema
 from src.services.user_login1.serializer import QuerySerializer, UsersSerializer,SaveSerializer,CsvSerializer
 
+load_dotenv() # take invironment variables from .env
 
-ACCESS_KEY = 'AKIARTNRWVPJUEIIT3GW'
-SECRET_KEY = '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'
+ACCESS_KEY = os.getenv("ACCESS_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 class Settings(BaseModel):
-    authjwt_secret_key:str='d1ef9b7d36d6fce56880edbf90c8d6949961db163e4e573984d9675a639e6a8c'
+    authjwt_secret_key:str=os.getenv("AUTHJWT_SECRET_KEY")
 
 @AuthJWT.load_config
 def get_config():
@@ -145,8 +147,22 @@ class Users_Module():
                 state.append(state_value["state"])
             data = Query_Schema.query(data,county=county,state=state)
 
-        if request.year != []:
-            data = Query_Schema.query(data,year=request.year)
+        if request.isdaterange == False:
+            if request.year != []:
+                data = Query_Schema.query(data,year=request.year)
+        else:
+            start_date = request.daterange["startdate"]
+            end_date = request.daterange["enddate"]
+
+            start_date = start_date.split('-')
+            start_date = (start_date[2]+"-"+start_date[0]+"-"+start_date[1])
+
+            end_date = end_date.split('-')
+            end_date = (end_date[2]+"-"+end_date[0]+"-"+end_date[1])
+
+            # print("i am here 1")
+            data = Query_Schema.query(data,start_date = start_date,end_date = end_date)
+            # print("i am here 2")
 
         if request.lenders != []:
             data = Query_Schema.query(data,lenders=request.lenders)
@@ -315,8 +331,9 @@ class Users_Module():
                 
     @classmethod
     async def saveq(cls, request:SaveSerializer,db):
-        print("i am request",(request.usecod))
-        save_query = Query_Schema.saveq(request=str(request),db=db)
+        # print("i am request",(request.usecod))
+        # save_query = Query_Schema.saveq(request=str(request),db=db)
+        save_query = Query_Schema.saveq(request,db)
         return save_query
 
 
@@ -450,7 +467,10 @@ class Users_Module():
                 writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
                 writer.writerow(subtitle)
                 writer.writerows(cur_report_ary[i])
-        
+                writer.writerows("\n")
+                writer.writerows("\n")
+
+
         '''
         PDF converter
         '''
@@ -458,10 +478,10 @@ class Users_Module():
         txt_reading = open(f'{path}/{file_name}.txt', "r")
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Arial", size = 9)
+        pdf.set_font("Arial", size=1)
         
         for text in txt_reading:
-            pdf.cell(80, 7, txt = text, ln = 1, align = 'L')
+            pdf.cell(80, 8, txt = text, ln = 1, align = 'L')
             
         pdf.output(f"{path}/{file_name}.pdf")
         

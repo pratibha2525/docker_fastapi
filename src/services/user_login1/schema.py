@@ -34,7 +34,9 @@ class Query_Schema():
               year = None,
               lendertype = None,
               lenders = None,
-              loantypessub = None
+              loantypessub = None,
+              start_date = None,
+              end_date = None
             ):
 
 
@@ -55,6 +57,11 @@ class Query_Schema():
         if year:
             data = data.filter(
                 NDTnewMortgage.mYear.in_(year)
+            )
+
+        if start_date and end_date:
+            data = data.filter(
+                NDTnewMortgage.mDate.between(start_date,end_date)
             )
 
         if lendertype:
@@ -105,7 +112,7 @@ class Query_Schema():
     @classmethod
     async def saveq(cls,request,db):
         # print("i am type",type("request"))
-        saveq = U_Queries(q_parms=request)
+        saveq = U_Queries(q_parms=request.q_parms)
         db.add(saveq)
         db.commit()
         db.refresh(saveq)
