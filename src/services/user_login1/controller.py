@@ -4,6 +4,7 @@ import uuid
 import csv
 import boto3
 import os
+from random import randint
 
 from fpdf import FPDF
 from botocore.config import Config
@@ -23,8 +24,8 @@ from src.db.models import Users, NDTnewMortgage,U_Queries
 from src.utils.sso import generate_token
 from src.config.constant import UserConstant
 from src.utils.logger_utils import LoggerUtil
-from src.services.user_login1.schema import User_Schena,Query_Schema
-from src.services.user_login1.serializer import QuerySerializer, UsersSerializer,SaveSerializer,CsvSerializer
+from src.services.user_login1.schema import User_Schena, Query_Schema, SaveQuery, ListQuery, DeleteQuery
+from src.services.user_login1.serializer import QuerySerializer, UsersSerializer,SaveSerializer,CsvSerializer,LoadSerializer,DeleteSerializer
 
 load_dotenv() # take invironment variables from .env
 
@@ -100,8 +101,8 @@ class Users_Module():
             if user != None:
                 LoggerUtil.info(UserConstant.USER_GET)
                 if (user.usr_username==request.usr_username) and (user.usr_password==request.usr_password):
-                    access_token=Authorize.create_access_token(subject=user.usr_username)
-                    refresh_token=Authorize.create_refresh_token(subject=user.usr_username)
+                    access_token=Authorize.create_access_token(subject=user.usr_id)
+                    refresh_token=Authorize.create_refresh_token(subject=user.usr_id)
                     # expires = datetime.timedelta(days=1)
                     # token = Authorize.create_access_token(subject="test",expires_time=expires)
                     # return {"token": token}
@@ -130,13 +131,75 @@ class Users_Module():
 
         # current_user=Authorize.get_jwt_subject()
 
-        data = Query_Schema.master_query(db)
+
+        data = Query_Schema.master_query(db, request)
+        pmm_data, oth_data = Query_Schema.get_all_data(db)
+        
+        # if request.loanpurpose:
+        #     data = Query_Schema.query(data,loanpurpose = request.loanpurpose)
+            
+        # if request.usecode:
+        #     usecodegroup = request.usecode["usecodegroup"]
+        #     usecode = request.usecode["usecode"]
+        #     data = Query_Schema.query(data,usecodegroup = usecodegroup,usecode = usecode)
+        
+        # if request.lendertype:
+        #     data = Query_Schema.query(data,lendertype = request.lendertype)
+
+        # if request.lenders != []:
+        #     data = Query_Schema.query(data,lenders=request.lenders)
+
+
+        # if request.loantypes:
+        #     data = Query_Schema.query(data,loantypes = request.loantypes)
+
+
+        # if request.refionly == True:
+        #     data = Query_Schema.query(data,refionly = request.refionly)
+        
+        # if request.loantypessub != []:
+        #     loantypessub = Helper.loan_types_sub_convert(request.loantypessub)
+        #     data = Query_Schema.query(data,loantypessub=loantypessub)
+
+        # if request.loantypessubbypass == True:
+        #     data = Query_Schema.query(data,loantypessubbypass = request.loantypessubbypass)
+        
+        # if request.loanmin != "" or request.loanmax != "":
+        #     data = Query_Schema.query(data,loanmin=request.loanmin, loanmax=request.loanmax)
+            
+        # if request.allowcustomregion == True:
+            
+
+        #     if request.isdaterange == False:
+        #         if request.summarizeby == "State Level":
+        #             print("11111")
+        #             state = []
+        #             for state_value in request.state:
+        #                 state.append(state_value["state"])
+                    
+        #             time_period = []
+        #             for ye in request.year:
+        #                 for pe in request.period:
+        #                     time_period.append([ye,pe])
+        #             print(time_period)
+        #             data = data | Query_Schema.query(data,allowcustomregion=request.allowcustomregion, t_state = state, t_time_period = time_period)
+                    
+        #             print(data)
+        # else:
+        #     pass
+                    
+
+
+
+
+
 
         if request.summarizeby == "State Level":
             state = []
             for state_value in request.state:
                 state.append(state_value["state"])
-            data = Query_Schema.query(data,state=state)
+            # data = Query_Schema.query(data,state=state)
+
         elif request.summarizeby == "County Level":
             county = []
             state = []
@@ -145,35 +208,25 @@ class Users_Module():
             
             for state_value in request.state:
                 state.append(state_value["state"])
-            data = Query_Schema.query(data,county=county,state=state)
+            # data = Query_Schema.query(data,county=county,state=state)
 
-        if request.isdaterange == False:
-            if request.year != []:
-                data = Query_Schema.query(data,year=request.year)
-        else:
-            start_date = request.daterange["startdate"]
-            end_date = request.daterange["enddate"]
 
-            start_date = start_date.split('-')
-            start_date = (start_date[2]+"-"+start_date[0]+"-"+start_date[1])
+        # if request.isdaterange == False:
+        #     if request.year != []:
+        #         data = Query_Schema.query(data,year=request.year)
+        # else:
+        #     start_date = request.daterange["startdate"]
+        #     end_date = request.daterange["enddate"]
 
-            end_date = end_date.split('-')
-            end_date = (end_date[2]+"-"+end_date[0]+"-"+end_date[1])
+        #     start_date = start_date.split('-')
+        #     start_date = (start_date[2]+"-"+start_date[0]+"-"+start_date[1])
 
-            # print("i am here 1")
-            data = Query_Schema.query(data,start_date = start_date,end_date = end_date)
-            # print("i am here 2")
+        #     end_date = end_date.split('-')
+        #     end_date = (end_date[2]+"-"+end_date[0]+"-"+end_date[1])
 
-        if request.lenders != []:
-            data = Query_Schema.query(data,lenders=request.lenders)
+        #     data = Query_Schema.query(data,start_date = start_date,end_date = end_date)
 
-        if request.loantypessub != []:
-            loantypessub = Helper.loan_types_sub_convert(request.loantypessub)
-            data = Query_Schema.query(data,loantypessub=loantypessub)
 
-        data = data.all()
-
-        # data = data.all()
         craeted_at = str(datetime.now())
         if request.usecode["usecodegroup"] == "ANY" and  request.usecode["usecode"] == "All":
             proprty_type = "All Properties"
@@ -187,7 +240,6 @@ class Users_Module():
         reportheader_ary = []
         
         if request.customregion == True:
-
             if request.summarizeby == "State Level":
                 state_str = ' ,'.join([str(elem) for elem in state])
                 regions = f"All Regions in {state_str}"
@@ -199,7 +251,6 @@ class Users_Module():
                     county_lst.append(i["state"] +" ")
                 county_str = ' ,'.join([str(elem) for elem in county_lst])
                 regions = county_str
-
             for year in request.year:
                 for period in request.period:
                     ary = []
@@ -246,29 +297,98 @@ class Users_Module():
                             ary.append(craeted_at)
                             reportheader_ary.append(ary)
 
-        
-        row_data = []
-        for i in data:
-            row_data.append(i.mLenderName)
-        print(len(row_data))
 
-        count = 0
-        back_count = int(request.lenderstodisplay)
-        increment_count = int(request.lenderstodisplay)
-        row_report_ary = []
-        for i in range(len(reportheader_ary)):
-            row_report_ary.append(row_data[count:back_count])
-            count = back_count
-            back_count = (back_count+increment_count)
+        print(reportheader_ary)              
+
+        # row_data = []
+        # for i in data:
+        #     row_data.append(i.mLenderName)
+        # print(len(row_data))
+        # print(row_data)
         
         report_ary = []
-        for i in row_report_ary:
-            internal_row_data = []
-            for j in i:
-                blank_data = j +"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-,"+"-"
-                internal_row_data.append([j , "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"])
-                print(internal_row_data)
-            report_ary.append(internal_row_data)
+        internal_row_data = []
+        x = 1
+        t_pmm_value = 0.00
+        t_pmm_count = 0
+        t_oth_value = 0.00
+        t_oth_count = 0
+        all_value = pmm_data[0].pmm_value + oth_data[0].oth_value
+        all_count = pmm_data[0].pmm_count + oth_data[0].oth_count
+        for i in data:
+            per_total_value = float(i.total_value) * 100 / float(all_value)
+            per_pmm_value = (float(i.pmm_value) * 100 / float(pmm_data[0].pmm_value) if i.pmm_value else 0)
+            per_oth_value = (float(i.oth_value) * 100 / float(oth_data[0].oth_value) if i.oth_value else 0)
+            internal_row_data.append(
+                [
+                    f"{i.mLenderName}",
+                    x, 
+                    f"{randint(10,99)}",
+                    f"{randint(10,99)}",
+                    f"${i.total_value}" if i.total_value else f"${0}",
+                    f"{i.total_count}" if i.total_count else f"{0}",
+                    f"${i.pmm_value}" if i.pmm_value else f"${0}",
+                    f"{i.pmm_count}" if i.pmm_count else f"{0}",
+                    f"${i.oth_value}" if i.oth_value else f"${0}",
+                    f"{i.oth_count}" if i.oth_count else f"{0}",
+                    f"{round(per_total_value,2)}%",
+                    f"{round(per_pmm_value,2)}%",
+                    f"{round(per_oth_value,2)}%"
+                ]
+            )
+            x = x + 1
+            t_pmm_value = t_pmm_value + (float(i.pmm_value) if i.pmm_value else 0.00)
+            t_pmm_count = t_pmm_count + (i.pmm_count if i.pmm_count else 0)
+            t_oth_value = t_oth_value + (float(i.oth_value) if i.oth_value else 0.00)
+            t_oth_count = t_oth_count + (i.oth_count if i.oth_count else 0)
+
+        
+        remaining_value = float(all_value) - (t_pmm_value + t_oth_value)
+        remaining_pmm_value = float(pmm_data[0].pmm_value) - t_pmm_value
+        remaining_oth_value = float(oth_data[0].oth_value) - t_oth_value
+        remaining_count = all_count - (t_pmm_count + t_oth_count)
+        remaining_per_total_value = float(remaining_value) * 100 / float(all_value)
+        remaining_per_pmm_value = float(remaining_pmm_value) * 100 / float(pmm_data[0].pmm_value)
+        remaining_per_oth_value = float(remaining_oth_value) * 100 / float(oth_data[0].oth_value)
+        
+        internal_row_data.append(
+            [
+                "(All Other Lenders)",
+                '',
+                '',
+                '',
+                f"${remaining_value}" if remaining_value else f"${0}",
+                f"{remaining_count}" if remaining_count else f"0",
+                f"${remaining_pmm_value}" if t_pmm_value else f"${0}",
+                f"{t_pmm_count}" if t_pmm_count else f"0",
+                f"${remaining_oth_value}" if t_oth_value else f"${0}",
+                f"{t_oth_count}" if t_oth_count else f"0",
+                f"{round(remaining_per_total_value,2)}%",
+                f"{round(remaining_per_pmm_value,2)}%",
+                f"{round(remaining_per_oth_value,2)}%"
+            ]
+        )
+        
+        
+        internal_row_data.append(
+            [
+                "All",
+                '',
+                '',
+                '',
+                f"${all_value}" if all_value else f"${0}",
+                f"{all_count}" if all_count else f"0",
+                f"${pmm_data[0].pmm_value}" if pmm_data[0].pmm_value else f"${0}",
+                f"{pmm_data[0].pmm_count}" if pmm_data[0].pmm_count else f"0",
+                f"${oth_data[0].oth_value}" if oth_data[0].oth_value else f"${0}",
+                f"{oth_data[0].oth_count}" if oth_data[0].oth_count else f"0",
+                "100%",
+                "100%",
+                "100%"
+            ]
+        )
+        report_ary.append(internal_row_data)
+        
 
         subheader = ["All Mortgages","Purchase Mortgages","Non Purchase Mortgages",f"Mkt Shr by {request.reportrank}(%)"]
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
@@ -326,24 +446,46 @@ class Users_Module():
         final_data["subtitle"] = subtitle
 
         return ResponseUtil.success_response(final_data,message="Success")
-    
-
-                
-    @classmethod
-    async def saveq(cls, request:SaveSerializer,db):
-        # print("i am request",(request.usecod))
-        # save_query = Query_Schema.saveq(request=str(request),db=db)
-        save_query = Query_Schema.saveq(request,db)
-        return save_query
-
 
     @classmethod
-    async def savelistq(cls):
-        pass
+    async def saveq(cls,request:SaveSerializer,db):
+        save_query = SaveQuery.save_query(request,db)
+
+        final_data = {}
+        final_data["q_id"] = save_query.q_id
+        return ResponseUtil.success_response(final_data,message="Success")
+
+
 
     @classmethod
-    async def save_q_name(cls):
-        pass
+    async def listq(cls,request:LoadSerializer,db):
+        liste_query = ListQuery.list_query(request,db)
+        final_list_data = []
+
+        for list_data in liste_query:
+            data = {}
+            data["q_id"] = list_data.q_id
+            data["usr_id"] = list_data.usr_id
+            data["q_name"] = list_data.q_name
+            data["q_create_ts"] = str(list_data.q_create_ts)
+            data["q_lastmod"] = str(list_data.q_lastmod)
+            data["q_parms"] = list_data.q_parms
+            final_list_data.append(data)
+
+        final_data = {}
+        final_data["data"] = final_list_data
+
+        return ResponseUtil.success_response(final_data,message="Success")
+
+    @classmethod
+    async def deleteq(cls,request:DeleteSerializer,db):
+        delete_query = DeleteQuery.delete_query(request,db)
+
+        final_data = {}
+        final_data["q_id"] = request.q_id
+        final_data["usr_id"] = request.usr_id
+        final_data["countaffected"] = 1
+        return ResponseUtil.success_response(final_data,message="Success")
 
     @classmethod
     async def csv(cls,request:CsvSerializer):

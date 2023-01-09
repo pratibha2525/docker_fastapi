@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from src.db.database import get_db
 from src.services.user_login1.controller import Users_Module
-from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer, CsvSerializer
+from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer, CsvSerializer, LoadSerializer, DeleteSerializer
 
 
 ##### MARKET SHARE MODULE (login, run_query, save_query, load_query) #####
@@ -23,13 +23,13 @@ async def query(request:QuerySerializer,db: Session = Depends(get_db),Authorize:
 async def saveq(request:SaveSerializer,db: Session = Depends(get_db)):
     return await Users_Module.saveq(request,db)
 
-@router.get("/listq/")
-async def savelistq():
-    return await Users_Module.savelistq()
+@router.post("/listq/")
+async def listq(request:LoadSerializer,db: Session = Depends(get_db)):
+    return await Users_Module.listq(request,db)
 
-@router.post("/saveqname/")
-async def save_q_name():
-    return await Users_Module.save_q_name()
+@router.post("/deleteq/")
+async def deleteq(request:DeleteSerializer,db: Session = Depends(get_db)):
+    return await Users_Module.deleteq(request,db)
 
 #####
 

@@ -34,7 +34,7 @@ class QuerySerializer(BaseModel):
     refionly: bool
     reportformat: constr(min_length=1)
     reporting: dict
-    reportrank: constr(min_length=1)
+    reportrank: constr(min_length=1) = "$ Volume"
     reporttype: constr(min_length=1)
     state: list
     summarizeby: constr(min_length=1)
@@ -98,6 +98,13 @@ class SaveSerializer(BaseModel):
         "year": list,
         "zipcode": list
     }
+
+class LoadSerializer(BaseModel):
+    usr_id: int
+
+class DeleteSerializer(BaseModel):
+    q_id: int
+    usr_id: int
 
 class CsvSerializer(BaseModel):
     cur_report_ary: list
