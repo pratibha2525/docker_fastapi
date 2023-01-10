@@ -50,10 +50,10 @@ class Query_Schema():
             oth_data.c.mLenderName == NDTnewMortgage.mLenderName
         ).group_by(NDTnewMortgage.mLenderName,pmm_data,oth_data)
 
-        if request.loanpurpose:
-            data = data.filter(
+        # if request.loanpurpose:
+        #     data = data.filter(
                 
-            )
+        #     )
 
         
         return data.all()

@@ -316,9 +316,18 @@ class Users_Module():
         all_value = pmm_data[0].pmm_value + oth_data[0].oth_value
         all_count = pmm_data[0].pmm_count + oth_data[0].oth_count
         for i in data:
-            per_total_value = float(i.total_value) * 100 / float(all_value)
-            per_pmm_value = (float(i.pmm_value) * 100 / float(pmm_data[0].pmm_value) if i.pmm_value else 0)
-            per_oth_value = (float(i.oth_value) * 100 / float(oth_data[0].oth_value) if i.oth_value else 0)
+            try:
+                per_total_value = float(i.total_value) * 100 / float(all_value)
+            except:
+                per_total_value = 0
+            try:
+                per_pmm_value = (float(i.pmm_value) * 100 / float(pmm_data[0].pmm_value) if i.pmm_value else 0)
+            except:
+                per_pmm_value = 0
+            try:
+                per_oth_value = (float(i.oth_value) * 100 / float(oth_data[0].oth_value) if i.oth_value else 0)
+            except:
+                per_oth_value = 0
             internal_row_data.append(
                 [
                     f"{i.mLenderName}",
