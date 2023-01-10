@@ -161,6 +161,9 @@ class Users_Module():
                     
                     if request.customregion == True:
                         if request.summarizeby == "State Level":
+                            state = []
+                            for state_value in request.state:
+                                state.append(state_value["state"])
                             state_str = ' ,'.join([str(elem) for elem in state])
                             regions = f"All Regions in {state_str}"
 
@@ -171,14 +174,14 @@ class Users_Module():
                                 county_lst.append(i["state"] +" ")
                             county_str = ' ,'.join([str(elem) for elem in county_lst])
                             regions = county_str
-                            ary = []
-                            ary.append(proprty_type)
-                            ary.append("Skyward Techno.")
-                            ary.append(regions)
-                            ary.append(f"{year} {period}")
-                            ary.append(request.reportrank)
-                            ary.append(created_at)
-                            reportheader_ary.append(ary)
+                        ary = []
+                        ary.append(proprty_type)
+                        ary.append("Skyward Techno.")
+                        ary.append(regions)
+                        ary.append(f"{year} {period}")
+                        ary.append(request.reportrank)
+                        ary.append(created_at)
+                        reportheader_ary.append(ary)
                     else:
                         if request.summarizeby == "State Level":
                             states = []
@@ -414,7 +417,10 @@ class Users_Module():
                 writer.writerow([cur_report_header_ary[i][3]])
                 writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
                 writer.writerow(subtitle)
-                writer.writerows(cur_report_ary[i])
+                try:
+                    writer.writerows(cur_report_ary[i])
+                except:
+                    pass
 
         Helper.upload_to_aws(local_file=f'{path}/{file_name}.csv',bucket="loanapp-s3",s3_file=f'{file_name}.csv')
 
@@ -447,7 +453,10 @@ class Users_Module():
                 writer.writerow([cur_report_header_ary[i][3]])
                 writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
                 writer.writerow(subtitle)
-                writer.writerows(cur_report_ary[i])
+                try:
+                    writer.writerows(cur_report_ary[i])
+                except:
+                    pass
 
         Helper.upload_to_aws(local_file=f'{path}/{file_name}.txt',bucket="loanapp-s3",s3_file=f'{file_name}.txt')
         
@@ -479,7 +488,10 @@ class Users_Module():
                 writer.writerow([cur_report_header_ary[i][3]])
                 writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
                 writer.writerow(subtitle)
-                writer.writerows(cur_report_ary[i])
+                try:
+                    writer.writerows(cur_report_ary[i])
+                except:
+                    pass
 
         Helper.upload_to_aws(local_file=f'{path}/{file_name}.xls',bucket="loanapp-s3",s3_file=f'{file_name}.xls')
 
@@ -512,7 +524,10 @@ class Users_Module():
                 writer.writerow([cur_report_header_ary[i][3]])
                 writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
                 writer.writerow(subtitle)
-                writer.writerows(cur_report_ary[i])
+                try:
+                    writer.writerows(cur_report_ary[i])
+                except:
+                    pass
                 writer.writerows("\n")
                 writer.writerows("\n")
 
