@@ -85,6 +85,19 @@ class Query_Schema():
                     NDTnewMortgage.mPropType == request.usecode["usecodegroup"],
                     NDTnewMortgage.mPropSubTP == usecode 
                 )
+                
+        if request.lendertype:
+            if request.lendertype == "Any":
+                data = data
+            else:
+                data =  data.filter(
+                    NDTnewMortgage.mLenderType == request.lendertype
+                )
+                
+        if request.lenders:
+            data = data.filter(
+                NDTnewMortgage.mLenderName.in_(request.lenders)
+            )
         
         if request.customregion:
             if request.summarizeby == "State Level":
@@ -115,6 +128,20 @@ class Query_Schema():
                 NDTnewMortgage.mQuarter == period
             )
             
+        if request.isdaterange:
+            if request.daterange["startdate"] and request.daterange["enddate"]:
+                start_date = request.daterange["startdate"]
+                end_date = request.daterange["enddate"]
+                start_date = start_date.split('-')
+                start_date = (start_date[2]+"-"+start_date[0]+"-"+start_date[1])
+                end_date = end_date.split('-')
+                end_date = (end_date[2]+"-"+end_date[0]+"-"+end_date[1])
+                print(f"Start Date {start_date}")
+                print(f"End Date {end_date}")
+                data = data.filter(
+                    NDTnewMortgage.mDate.between(start_date, end_date)
+                )
+            
             
         if request.lenderstodisplay:
             print(f"limit: {request.lenderstodisplay}")
@@ -122,9 +149,6 @@ class Query_Schema():
         # print(data.all())
   
         return data.all()
-
- # if request.lendertype:
-        #     data = Query_Schema.query(data,lendertype = request.lendertype)
 
         # if request.lenders != []:
         #     data = Query_Schema.query(data,lenders=request.lenders)
@@ -146,42 +170,6 @@ class Query_Schema():
         
         # if request.loanmin != "" or request.loanmax != "":
         #     data = Query_Schema.query(data,loanmin=request.loanmin, loanmax=request.loanmax)
-            
-        # if request.allowcustomregion == True:
-            
-
-        #     if request.isdaterange == False:
-        #         if request.summarizeby == "State Level":
-        #             state = []
-        #             for state_value in request.state:
-        #                 state.append(state_value["state"])
-                    
-        #             time_period = []
-        #             for ye in request.year:
-        #                 for pe in request.period:
-        #                     time_period.append([ye,pe])
-        #             data = data | Query_Schema.query(data,allowcustomregion=request.allowcustomregion, t_state = state, t_time_period = time_period)
-                    
-        #             print(data)
-        # else:
-        #     pass
-
-
-
-        # if request.isdaterange == False:
-        #     if request.year != []:
-        #         data = Query_Schema.query(data,year=request.year)
-        # else:
-        #     start_date = request.daterange["startdate"]
-        #     end_date = request.daterange["enddate"]
-
-        #     start_date = start_date.split('-')
-        #     start_date = (start_date[2]+"-"+start_date[0]+"-"+start_date[1])
-
-        #     end_date = end_date.split('-')
-        #     end_date = (end_date[2]+"-"+end_date[0]+"-"+end_date[1])
-
-        #     data = Query_Schema.query(data,start_date = start_date,end_date = end_date)
 
 
 

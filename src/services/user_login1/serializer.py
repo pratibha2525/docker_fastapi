@@ -81,25 +81,28 @@ class QuerySerializer(BaseModel):
         "usecode": Optional[str],
         "usecodegroup": Optional[str]
     }
+    lendertype: Optional[constr(min_length=1)] = "Any"
     lenderstodisplay: Optional[constr(min_length=1)] = "5"
+    lenders: Optional[list] = []
     customregion: Optional[bool] = False
     state: Optional[list] = []
     summarizeby: Optional[constr(min_length=1)] = "State Level" # County Level
     county: Optional[list] = []
-    year: List
-    period: List
-    isdaterange : Optional[bool]
+    year: Optional[List] = []
+    period: Optional[List] = []
+    isdaterange : Optional[bool] = False
     daterange = {
         "startdate": Optional[constr(min_length=0)],
         "enddate": Optional[constr(min_length=0)]
     }
-    allowcustomregion: Optional[bool]
-    brokerlenderbypass: Optional[bool]
+    
+    allowcustomregion: Optional[bool] = True # I am not sure about this
+    brokerlenderbypass: Optional[bool] = False # Remaining
+
     censustract: Optional[list]
     citytown: Optional[list]
     excl_usahud: Optional[bool]
-    lenders: Optional[list]
-    lendertype: Optional[constr(min_length=1)]
+    
     loanmax: Optional[constr(min_length=0)]
     loanmin: Optional[constr(min_length=0)]
     loantypes: Optional[constr(min_length=1)]

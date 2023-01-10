@@ -134,9 +134,19 @@ class Users_Module():
         created_at = str(datetime.now())
         reportheader_ary = []
         report_ary = []
-        if len(request.year) > 0 and len(request.period) > 0:
-            for year in request.year:
-                for period in request.period:
+        if (len(request.year) > 0 and len(request.period) > 0) or request.isdaterange:
+            if request.isdaterange:
+                start_date = request.daterange["startdate"]
+                end_date = request.daterange["enddate"]
+                start_date = start_date.split('-')
+                end_date = end_date.split('-')
+                year_data = [f"{start_date[2]}", f"{end_date[2]}"]
+                period_data = ["Q1", "Q2", "Q3", "Q4"]
+            else:
+                year_data = request.year
+                period_data = request.period
+            for year in year_data:
+                for period in period_data:
                     data = Query_Schema.master_query(db, request, year, period)
                     pmm_data, oth_data = Query_Schema.get_all_data(db)
 
@@ -161,16 +171,14 @@ class Users_Module():
                                 county_lst.append(i["state"] +" ")
                             county_str = ' ,'.join([str(elem) for elem in county_lst])
                             regions = county_str
-                        for year in request.year:
-                            for period in request.period:
-                                ary = []
-                                ary.append(proprty_type)
-                                ary.append("Skyward Techno.")
-                                ary.append(regions)
-                                ary.append(f"{year} {period}")
-                                ary.append(request.reportrank)
-                                ary.append(created_at)
-                                reportheader_ary.append(ary)
+                            ary = []
+                            ary.append(proprty_type)
+                            ary.append("Skyward Techno.")
+                            ary.append(regions)
+                            ary.append(f"{year} {period}")
+                            ary.append(request.reportrank)
+                            ary.append(created_at)
+                            reportheader_ary.append(ary)
                     else:
                         if request.summarizeby == "State Level":
                             states = []
@@ -178,16 +186,14 @@ class Users_Module():
                                 states.append(state_value["state"])
 
                             for state in states:
-                                for year in request.year:
-                                    for period in request.period:
-                                        ary = []
-                                        ary.append(proprty_type)
-                                        ary.append("Skyward Techno.")
-                                        ary.append(f"All Regions in State of {state}")
-                                        ary.append(f"{year} {period}")
-                                        ary.append(request.reportrank)
-                                        ary.append(created_at)
-                                        reportheader_ary.append(ary)
+                                ary = []
+                                ary.append(proprty_type)
+                                ary.append("Skyward Techno.")
+                                ary.append(f"All Regions in State of {state}")
+                                ary.append(f"{year} {period}")
+                                ary.append(request.reportrank)
+                                ary.append(created_at)
+                                reportheader_ary.append(ary)
 
                         elif request.summarizeby == "County Level":
 
@@ -196,16 +202,14 @@ class Users_Module():
                                 county_lst.append([i["county"] ,i["state"]])
                             
                             for county in county_lst:
-                                for year in request.year:
-                                    for period in request.period:
-                                        ary = []
-                                        ary.append(proprty_type)
-                                        ary.append("Skyward Techno.")
-                                        ary.append(f"All Regions in {county[0]} County, {county[1]}")
-                                        ary.append(f"{year} {period}")
-                                        ary.append(request.reportrank)
-                                        ary.append(created_at)
-                                        reportheader_ary.append(ary)            
+                                ary = []
+                                ary.append(proprty_type)
+                                ary.append("Skyward Techno.")
+                                ary.append(f"All Regions in {county[0]} County, {county[1]}")
+                                ary.append(f"{year} {period}")
+                                ary.append(request.reportrank)
+                                ary.append(created_at)
+                                reportheader_ary.append(ary)            
 
 
                     internal_row_data = []
