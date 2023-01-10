@@ -131,273 +131,165 @@ class Users_Module():
 
         # current_user=Authorize.get_jwt_subject()
 
-
-        data = Query_Schema.master_query(db, request)
-        pmm_data, oth_data = Query_Schema.get_all_data(db)
-        
-        # if request.loanpurpose:
-        #     data = Query_Schema.query(data,loanpurpose = request.loanpurpose)
-            
-        # if request.usecode:
-        #     usecodegroup = request.usecode["usecodegroup"]
-        #     usecode = request.usecode["usecode"]
-        #     data = Query_Schema.query(data,usecodegroup = usecodegroup,usecode = usecode)
-        
-        # if request.lendertype:
-        #     data = Query_Schema.query(data,lendertype = request.lendertype)
-
-        # if request.lenders != []:
-        #     data = Query_Schema.query(data,lenders=request.lenders)
-
-
-        # if request.loantypes:
-        #     data = Query_Schema.query(data,loantypes = request.loantypes)
-
-
-        # if request.refionly == True:
-        #     data = Query_Schema.query(data,refionly = request.refionly)
-        
-        # if request.loantypessub != []:
-        #     loantypessub = Helper.loan_types_sub_convert(request.loantypessub)
-        #     data = Query_Schema.query(data,loantypessub=loantypessub)
-
-        # if request.loantypessubbypass == True:
-        #     data = Query_Schema.query(data,loantypessubbypass = request.loantypessubbypass)
-        
-        # if request.loanmin != "" or request.loanmax != "":
-        #     data = Query_Schema.query(data,loanmin=request.loanmin, loanmax=request.loanmax)
-            
-        # if request.allowcustomregion == True:
-            
-
-        #     if request.isdaterange == False:
-        #         if request.summarizeby == "State Level":
-        #             print("11111")
-        #             state = []
-        #             for state_value in request.state:
-        #                 state.append(state_value["state"])
-                    
-        #             time_period = []
-        #             for ye in request.year:
-        #                 for pe in request.period:
-        #                     time_period.append([ye,pe])
-        #             print(time_period)
-        #             data = data | Query_Schema.query(data,allowcustomregion=request.allowcustomregion, t_state = state, t_time_period = time_period)
-                    
-        #             print(data)
-        # else:
-        #     pass
-                    
-
-
-
-
-
-
-        if request.summarizeby == "State Level":
-            state = []
-            for state_value in request.state:
-                state.append(state_value["state"])
-            # data = Query_Schema.query(data,state=state)
-
-        elif request.summarizeby == "County Level":
-            county = []
-            state = []
-            for county_value in request.county:
-                county.append(county_value["county"])
-            
-            for state_value in request.state:
-                state.append(state_value["state"])
-            # data = Query_Schema.query(data,county=county,state=state)
-
-
-        # if request.isdaterange == False:
-        #     if request.year != []:
-        #         data = Query_Schema.query(data,year=request.year)
-        # else:
-        #     start_date = request.daterange["startdate"]
-        #     end_date = request.daterange["enddate"]
-
-        #     start_date = start_date.split('-')
-        #     start_date = (start_date[2]+"-"+start_date[0]+"-"+start_date[1])
-
-        #     end_date = end_date.split('-')
-        #     end_date = (end_date[2]+"-"+end_date[0]+"-"+end_date[1])
-
-        #     data = Query_Schema.query(data,start_date = start_date,end_date = end_date)
-
-
-        craeted_at = str(datetime.now())
-        if request.usecode["usecodegroup"] == "ANY" and  request.usecode["usecode"] == "All":
-            proprty_type = "All Properties"
-        elif request.usecode["usecodegroup"] == "RES" and  request.usecode["usecode"] == "All":
-            proprty_type = "All Residentials"
-        elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
-            proprty_type = "All Commericals"
-        else:
-            proprty_type = request.usecode["usecodegroup"] + " " + request.usecode["usecode"]
-
+        created_at = str(datetime.now())
         reportheader_ary = []
-        
-        if request.customregion == True:
-            if request.summarizeby == "State Level":
-                state_str = ' ,'.join([str(elem) for elem in state])
-                regions = f"All Regions in {state_str}"
-
-            elif request.summarizeby == "County Level":
-                county_lst = []
-                for i in request.county:
-                    county_lst.append(i["county"] + " County")
-                    county_lst.append(i["state"] +" ")
-                county_str = ' ,'.join([str(elem) for elem in county_lst])
-                regions = county_str
+        report_ary = []
+        if len(request.year) > 0 and len(request.period) > 0:
             for year in request.year:
                 for period in request.period:
-                    ary = []
-                    ary.append(proprty_type)
-                    ary.append("Skyward Techno.")
-                    ary.append(regions)
-                    ary.append(f"{year} {period}")
-                    ary.append(request.reportrank)
-                    ary.append(craeted_at)
-                    reportheader_ary.append(ary)
-        else:
-            if request.summarizeby == "State Level":
-                states = []
-                for state_value in request.state:
-                    states.append(state_value["state"])
+                    data = Query_Schema.master_query(db, request, year, period)
+                    pmm_data, oth_data = Query_Schema.get_all_data(db)
 
-                for state in states:
-                    for year in request.year:
-                        for period in request.period:
-                            ary = []
-                            ary.append(proprty_type)
-                            ary.append("Skyward Techno.")
-                            ary.append(f"All Regions in State of {state}")
-                            ary.append(f"{year} {period}")
-                            ary.append(request.reportrank)
-                            ary.append(craeted_at)
-                            reportheader_ary.append(ary)
+                    if request.usecode["usecodegroup"] == "ANY" and  request.usecode["usecode"] == "All":
+                        proprty_type = "All Properties"
+                    elif request.usecode["usecodegroup"] == "RES" and  request.usecode["usecode"] == "All":
+                        proprty_type = "All Residentials"
+                    elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
+                        proprty_type = "All Commericals"
+                    else:
+                        proprty_type = request.usecode["usecodegroup"] + " " + request.usecode["usecode"]
+                    
+                    if request.customregion == True:
+                        if request.summarizeby == "State Level":
+                            state_str = ' ,'.join([str(elem) for elem in state])
+                            regions = f"All Regions in {state_str}"
 
-            elif request.summarizeby == "County Level":
+                        elif request.summarizeby == "County Level":
+                            county_lst = []
+                            for i in request.county:
+                                county_lst.append(i["county"] + " County")
+                                county_lst.append(i["state"] +" ")
+                            county_str = ' ,'.join([str(elem) for elem in county_lst])
+                            regions = county_str
+                        for year in request.year:
+                            for period in request.period:
+                                ary = []
+                                ary.append(proprty_type)
+                                ary.append("Skyward Techno.")
+                                ary.append(regions)
+                                ary.append(f"{year} {period}")
+                                ary.append(request.reportrank)
+                                ary.append(created_at)
+                                reportheader_ary.append(ary)
+                    else:
+                        if request.summarizeby == "State Level":
+                            states = []
+                            for state_value in request.state:
+                                states.append(state_value["state"])
 
-                county_lst = []
-                for i in request.county:
-                    county_lst.append([i["county"] ,i["state"]])
-                
-                for county in county_lst:
-                    for year in request.year:
-                        for period in request.period:
-                            ary = []
-                            ary.append(proprty_type)
-                            ary.append("Skyward Techno.")
-                            ary.append(f"All Regions in {county[0]} County, {county[1]}")
-                            ary.append(f"{year} {period}")
-                            ary.append(request.reportrank)
-                            ary.append(craeted_at)
-                            reportheader_ary.append(ary)
+                            for state in states:
+                                for year in request.year:
+                                    for period in request.period:
+                                        ary = []
+                                        ary.append(proprty_type)
+                                        ary.append("Skyward Techno.")
+                                        ary.append(f"All Regions in State of {state}")
+                                        ary.append(f"{year} {period}")
+                                        ary.append(request.reportrank)
+                                        ary.append(created_at)
+                                        reportheader_ary.append(ary)
+
+                        elif request.summarizeby == "County Level":
+
+                            county_lst = []
+                            for i in request.county:
+                                county_lst.append([i["county"] ,i["state"]])
+                            
+                            for county in county_lst:
+                                for year in request.year:
+                                    for period in request.period:
+                                        ary = []
+                                        ary.append(proprty_type)
+                                        ary.append("Skyward Techno.")
+                                        ary.append(f"All Regions in {county[0]} County, {county[1]}")
+                                        ary.append(f"{year} {period}")
+                                        ary.append(request.reportrank)
+                                        ary.append(created_at)
+                                        reportheader_ary.append(ary)            
 
 
-        print(reportheader_ary)              
+                    internal_row_data = []
+                    x = 1
+                    t_pmm_value = 0.00
+                    t_pmm_count = 0
+                    t_oth_value = 0.00
+                    t_oth_count = 0
+                    all_value = pmm_data[0].pmm_value + oth_data[0].oth_value
+                    all_count = pmm_data[0].pmm_count + oth_data[0].oth_count
+                    for i in data:
+                        per_total_value = (float(i.total_value) * 100 / float(all_value) if i.total_value else 0)
+                        per_pmm_value = (float(i.pmm_value) * 100 / float(pmm_data[0].pmm_value) if i.pmm_value else 0)
+                        per_oth_value = (float(i.oth_value) * 100 / float(oth_data[0].oth_value) if i.oth_value else 0)
+                        internal_row_data.append(
+                            [
+                                f"{i.mLenderName}",
+                                x, 
+                                f"{randint(10,99)}",
+                                f"{randint(10,99)}",
+                                f"${i.total_value}" if i.total_value else f"${0}",
+                                f"{i.total_count}" if i.total_count else f"{0}",
+                                f"${i.pmm_value}" if i.pmm_value else f"${0}",
+                                f"{i.pmm_count}" if i.pmm_count else f"{0}",
+                                f"${i.oth_value}" if i.oth_value else f"${0}",
+                                f"{i.oth_count}" if i.oth_count else f"{0}",
+                                f"{round(per_total_value,2)}%",
+                                f"{round(per_pmm_value,2)}%",
+                                f"{round(per_oth_value,2)}%"
+                            ]
+                        )
+                        x = x + 1
+                        t_pmm_value = t_pmm_value + (float(i.pmm_value) if i.pmm_value else 0.00)
+                        t_pmm_count = t_pmm_count + (i.pmm_count if i.pmm_count else 0)
+                        t_oth_value = t_oth_value + (float(i.oth_value) if i.oth_value else 0.00)
+                        t_oth_count = t_oth_count + (i.oth_count if i.oth_count else 0)
 
-        # row_data = []
-        # for i in data:
-        #     row_data.append(i.mLenderName)
-        # print(len(row_data))
-        # print(row_data)
-        
-        report_ary = []
-        internal_row_data = []
-        x = 1
-        t_pmm_value = 0.00
-        t_pmm_count = 0
-        t_oth_value = 0.00
-        t_oth_count = 0
-        all_value = pmm_data[0].pmm_value + oth_data[0].oth_value
-        all_count = pmm_data[0].pmm_count + oth_data[0].oth_count
-        for i in data:
-            try:
-                per_total_value = float(i.total_value) * 100 / float(all_value)
-            except:
-                per_total_value = 0
-            try:
-                per_pmm_value = (float(i.pmm_value) * 100 / float(pmm_data[0].pmm_value) if i.pmm_value else 0)
-            except:
-                per_pmm_value = 0
-            try:
-                per_oth_value = (float(i.oth_value) * 100 / float(oth_data[0].oth_value) if i.oth_value else 0)
-            except:
-                per_oth_value = 0
-            internal_row_data.append(
-                [
-                    f"{i.mLenderName}",
-                    x, 
-                    f"{randint(10,99)}",
-                    f"{randint(10,99)}",
-                    f"${i.total_value}" if i.total_value else f"${0}",
-                    f"{i.total_count}" if i.total_count else f"{0}",
-                    f"${i.pmm_value}" if i.pmm_value else f"${0}",
-                    f"{i.pmm_count}" if i.pmm_count else f"{0}",
-                    f"${i.oth_value}" if i.oth_value else f"${0}",
-                    f"{i.oth_count}" if i.oth_count else f"{0}",
-                    f"{round(per_total_value,2)}%",
-                    f"{round(per_pmm_value,2)}%",
-                    f"{round(per_oth_value,2)}%"
-                ]
-            )
-            x = x + 1
-            t_pmm_value = t_pmm_value + (float(i.pmm_value) if i.pmm_value else 0.00)
-            t_pmm_count = t_pmm_count + (i.pmm_count if i.pmm_count else 0)
-            t_oth_value = t_oth_value + (float(i.oth_value) if i.oth_value else 0.00)
-            t_oth_count = t_oth_count + (i.oth_count if i.oth_count else 0)
-
-        
-        remaining_value = float(all_value) - (t_pmm_value + t_oth_value)
-        remaining_pmm_value = float(pmm_data[0].pmm_value) - t_pmm_value
-        remaining_oth_value = float(oth_data[0].oth_value) - t_oth_value
-        remaining_count = all_count - (t_pmm_count + t_oth_count)
-        remaining_per_total_value = float(remaining_value) * 100 / float(all_value)
-        remaining_per_pmm_value = float(remaining_pmm_value) * 100 / float(pmm_data[0].pmm_value)
-        remaining_per_oth_value = float(remaining_oth_value) * 100 / float(oth_data[0].oth_value)
-        
-        internal_row_data.append(
-            [
-                "(All Other Lenders)",
-                '',
-                '',
-                '',
-                f"${remaining_value}" if remaining_value else f"${0}",
-                f"{remaining_count}" if remaining_count else f"0",
-                f"${remaining_pmm_value}" if t_pmm_value else f"${0}",
-                f"{t_pmm_count}" if t_pmm_count else f"0",
-                f"${remaining_oth_value}" if t_oth_value else f"${0}",
-                f"{t_oth_count}" if t_oth_count else f"0",
-                f"{round(remaining_per_total_value,2)}%",
-                f"{round(remaining_per_pmm_value,2)}%",
-                f"{round(remaining_per_oth_value,2)}%"
-            ]
-        )
-        
-        
-        internal_row_data.append(
-            [
-                "All",
-                '',
-                '',
-                '',
-                f"${all_value}" if all_value else f"${0}",
-                f"{all_count}" if all_count else f"0",
-                f"${pmm_data[0].pmm_value}" if pmm_data[0].pmm_value else f"${0}",
-                f"{pmm_data[0].pmm_count}" if pmm_data[0].pmm_count else f"0",
-                f"${oth_data[0].oth_value}" if oth_data[0].oth_value else f"${0}",
-                f"{oth_data[0].oth_count}" if oth_data[0].oth_count else f"0",
-                "100%",
-                "100%",
-                "100%"
-            ]
-        )
-        report_ary.append(internal_row_data)
-        
+                    
+                    remaining_value = float(all_value) - (t_pmm_value + t_oth_value)
+                    remaining_pmm_value = float(pmm_data[0].pmm_value) - t_pmm_value
+                    remaining_oth_value = float(oth_data[0].oth_value) - t_oth_value
+                    remaining_count = all_count - (t_pmm_count + t_oth_count)
+                    remaining_per_total_value = float(remaining_value) * 100 / float(all_value)
+                    remaining_per_pmm_value = float(remaining_pmm_value) * 100 / float(pmm_data[0].pmm_value)
+                    remaining_per_oth_value = float(remaining_oth_value) * 100 / float(oth_data[0].oth_value)
+                    
+                    internal_row_data.append(
+                        [
+                            "(All Other Lenders)",
+                            '',
+                            '',
+                            '',
+                            f"${remaining_value}" if remaining_value else f"${0}",
+                            f"{remaining_count}" if remaining_count else f"0",
+                            f"${remaining_pmm_value}" if t_pmm_value else f"${0}",
+                            f"{t_pmm_count}" if t_pmm_count else f"0",
+                            f"${remaining_oth_value}" if t_oth_value else f"${0}",
+                            f"{t_oth_count}" if t_oth_count else f"0",
+                            f"{round(remaining_per_total_value,2)}%",
+                            f"{round(remaining_per_pmm_value,2)}%",
+                            f"{round(remaining_per_oth_value,2)}%"
+                        ]
+                    )
+                    
+                    
+                    internal_row_data.append(
+                        [
+                            "All",
+                            '',
+                            '',
+                            '',
+                            f"${all_value}" if all_value else f"${0}",
+                            f"{all_count}" if all_count else f"0",
+                            f"${pmm_data[0].pmm_value}" if pmm_data[0].pmm_value else f"${0}",
+                            f"{pmm_data[0].pmm_count}" if pmm_data[0].pmm_count else f"0",
+                            f"${oth_data[0].oth_value}" if oth_data[0].oth_value else f"${0}",
+                            f"{oth_data[0].oth_count}" if oth_data[0].oth_count else f"0",
+                            "100%",
+                            "100%",
+                            "100%"
+                        ]
+                    )
+                    report_ary.append(internal_row_data)
+                    
 
         subheader = ["All Mortgages","Purchase Mortgages","Non Purchase Mortgages",f"Mkt Shr by {request.reportrank}(%)"]
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
@@ -453,7 +345,6 @@ class Users_Module():
         final_data["report"] = ""
         final_data["subheader"] = subheader
         final_data["subtitle"] = subtitle
-
         return ResponseUtil.success_response(final_data,message="Success")
 
     @classmethod

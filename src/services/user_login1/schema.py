@@ -19,7 +19,7 @@ class User_Schena():
 class Query_Schema():
 
     @classmethod
-    def master_query(cls,db, request:QuerySerializer):
+    def master_query(cls,db, request:QuerySerializer, year, period):
         pmm_data = db.query(
             NDTnewMortgage.mLenderName,
             func.sum(NDTnewMortgage.mAmount).label("pmm_value"),
@@ -50,13 +50,140 @@ class Query_Schema():
             oth_data.c.mLenderName == NDTnewMortgage.mLenderName
         ).group_by(NDTnewMortgage.mLenderName,pmm_data,oth_data)
 
-        # if request.loanpurpose:
-        #     data = data.filter(
-                
-        #     )
+        if request.reportrank == "# Loans":
+            print(f"Report Rank: Loans")
+            data = data.order_by(func.count(NDTnewMortgage.mLenderName).desc())
+        elif request.reportrank == "$ Volume":
+            print(f"Report Rank: Volumes")
+            data = data.order_by(func.sum(NDTnewMortgage.mAmount).desc())
 
+        print(f"Loan Purpose : {request.loanpurpose}")
+        if request.loanpurpose == "Purchase":
+            data = data.filter(
+                NDTnewMortgage.mLoanUse == "PMM"
+            ).order_by(func.sum(NDTnewMortgage.mAmount).desc())
+        elif request.loanpurpose == "Non-Purchase":
+            data = data.filter(
+                NDTnewMortgage.mLoanUse == "OTH"
+            ).order_by(func.sum(NDTnewMortgage.mAmount).desc())
+
+        if request.usecode:
+            print(f"Usecode {request.usecode}")
+            if  request.usecode["usecodegroup"] == "RES" and  request.usecode["usecode"] == "All":
+                data = data.filter(
+                    NDTnewMortgage.mPropType == request.usecode["usecodegroup"]
+                )
+            elif  request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
+                data = data.filter(
+                    NDTnewMortgage.mPropType == request.usecode["usecodegroup"]
+                    )
+            elif request.usecode["usecodegroup"] == "ANY" and  request.usecode["usecode"] == "All":
+                data = data
+            else:
+                usecode = request.usecode["usecode"].upper()
+                data = data.filter(
+                    NDTnewMortgage.mPropType == request.usecode["usecodegroup"],
+                    NDTnewMortgage.mPropSubTP == usecode 
+                )
         
+        if request.customregion:
+            if request.summarizeby == "State Level":
+                state_data = []
+                for each in request.state:
+                    state_data.append(each["state"])
+                data = data.filter(
+                    NDTnewMortgage.mState.in_(state_data)
+                )
+            elif request.summarizeby == "County Level":
+                county_data = []
+                state_data =[]
+                for each in request.county:
+                    county_data.append(each["county"])
+                    state_data.append(each["state"])
+                data = data.filter(
+                    NDTnewMortgage.mState.in_(state_data),
+                    NDTnewMortgage.mCounty.in_(county_data)
+                )
+                
+        if year:
+            data = data.filter(
+                NDTnewMortgage.mYear == year
+            )
+        if period:
+            period = period[1]
+            data = data.filter(
+                NDTnewMortgage.mQuarter == period
+            )
+            
+            
+        if request.lenderstodisplay:
+            print(f"limit: {request.lenderstodisplay}")
+            data = data.limit(request.lenderstodisplay)
+        # print(data.all())
+  
         return data.all()
+
+ # if request.lendertype:
+        #     data = Query_Schema.query(data,lendertype = request.lendertype)
+
+        # if request.lenders != []:
+        #     data = Query_Schema.query(data,lenders=request.lenders)
+
+
+        # if request.loantypes:
+        #     data = Query_Schema.query(data,loantypes = request.loantypes)
+
+
+        # if request.refionly == True:
+        #     data = Query_Schema.query(data,refionly = request.refionly)
+        
+        # if request.loantypessub != []:
+        #     loantypessub = Helper.loan_types_sub_convert(request.loantypessub)
+        #     data = Query_Schema.query(data,loantypessub=loantypessub)
+
+        # if request.loantypessubbypass == True:
+        #     data = Query_Schema.query(data,loantypessubbypass = request.loantypessubbypass)
+        
+        # if request.loanmin != "" or request.loanmax != "":
+        #     data = Query_Schema.query(data,loanmin=request.loanmin, loanmax=request.loanmax)
+            
+        # if request.allowcustomregion == True:
+            
+
+        #     if request.isdaterange == False:
+        #         if request.summarizeby == "State Level":
+        #             state = []
+        #             for state_value in request.state:
+        #                 state.append(state_value["state"])
+                    
+        #             time_period = []
+        #             for ye in request.year:
+        #                 for pe in request.period:
+        #                     time_period.append([ye,pe])
+        #             data = data | Query_Schema.query(data,allowcustomregion=request.allowcustomregion, t_state = state, t_time_period = time_period)
+                    
+        #             print(data)
+        # else:
+        #     pass
+
+
+
+        # if request.isdaterange == False:
+        #     if request.year != []:
+        #         data = Query_Schema.query(data,year=request.year)
+        # else:
+        #     start_date = request.daterange["startdate"]
+        #     end_date = request.daterange["enddate"]
+
+        #     start_date = start_date.split('-')
+        #     start_date = (start_date[2]+"-"+start_date[0]+"-"+start_date[1])
+
+        #     end_date = end_date.split('-')
+        #     end_date = (end_date[2]+"-"+end_date[0]+"-"+end_date[1])
+
+        #     data = Query_Schema.query(data,start_date = start_date,end_date = end_date)
+
+
 
 
     @classmethod
