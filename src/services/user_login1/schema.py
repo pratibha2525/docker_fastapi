@@ -19,7 +19,7 @@ class User_Schena():
 class Query_Schema():
 
     @classmethod
-    def master_query(cls, db, request:QuerySerializer, year = None, period = None):
+    def master_query(cls, db, request:QuerySerializer, year = None, period = None, state = None, county = None):
         pmm_data = db.query(
             NDTnewMortgage.mLenderName,
             func.sum(NDTnewMortgage.mAmount).label("pmm_value"),
@@ -181,7 +181,17 @@ class Query_Schema():
                     NDTnewMortgage.mState.in_(state_data),
                     NDTnewMortgage.mCounty.in_(county_data)
                 )
-            
+        else:
+            if state:
+                data = data.filter(
+                    NDTnewMortgage.mState == state
+                )
+            elif county:
+                data = data.filter(
+                    NDTnewMortgage.mState == county[1],
+                    NDTnewMortgage.mCounty == county[0]
+                )
+
         if request.isdaterange:
             if request.daterange["startdate"] and request.daterange["enddate"]:  
                 start_date = request.daterange["startdate"]
