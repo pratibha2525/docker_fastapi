@@ -19,7 +19,7 @@ class User_Schena():
 class Query_Schema():
 
     @classmethod
-    def master_query(cls,db, request:QuerySerializer, year, period):
+    def master_query(cls, db, request:QuerySerializer, year = None, period = None):
         pmm_data = db.query(
             NDTnewMortgage.mLenderName,
             func.sum(NDTnewMortgage.mAmount).label("pmm_value"),
@@ -99,6 +99,70 @@ class Query_Schema():
                 NDTnewMortgage.mLenderName.in_(request.lenders)
             )
         
+        if request.loantypes:
+            if request.loantypes == "All":
+                data = data
+            elif request.loantypes == "Conforming":
+                data =  data.filter(
+                    NDTnewMortgage.mCONFORMING == "T"
+                )
+            elif request.loantypes == "Jumbo":
+                data =  data.filter(
+                    NDTnewMortgage.mJUMBO == "T"
+                )
+
+        if request.loantypessub:
+            if "ARM" in request.loantypessub:
+                data = data.filter(
+                    NDTnewMortgage.mARM == "T"
+                )
+
+            if "FHA" in request.loantypessub:
+                data = data.filter(
+                    NDTnewMortgage.mFHA == "T"
+                )
+
+            if "Home Equity Loan" in request.loantypessub:
+                data = data.filter(
+                    NDTnewMortgage.mHMEQ == "T"
+                )
+
+            if "HELOC" in request.loantypessub:
+                data = data.filter(
+                    NDTnewMortgage.mHELOC == "T"
+                )
+
+            if "Reverse" in request.loantypessub:
+                data = data.filter(
+                    NDTnewMortgage.mReverse == "T"
+                )
+
+            if "VHA" in request.loantypessub:
+                data = data.filter(
+                    NDTnewMortgage.mFHA == "T"
+                )
+        
+        if request.refionly:
+            if request.refionly == True:
+                data = data.filter(
+                    NDTnewMortgage.mHMEQ == "F",
+                    NDTnewMortgage.mHELOC == "F"
+                )
+        
+        if request.excl_usahud:
+            if request.excl_usahud == True:
+                data = data.filter(
+                    NDTnewMortgage.mLenderName != "USA Housing and Urban Development",
+                    NDTnewMortgage.mLenderName != "DEPARTMENT OF HOUSING & URBAN DEV"
+                )
+
+        if request.loantypessubbypass:
+            if request.loantypessubbypass == True:
+                data = data.filter(
+                        NDTnewMortgage.mHELOC == "T",
+                        NDTnewMortgage.mHMEQ == "T",
+                        )
+        
         if request.customregion:
             if request.summarizeby == "State Level":
                 state_data = []
@@ -117,29 +181,27 @@ class Query_Schema():
                     NDTnewMortgage.mState.in_(state_data),
                     NDTnewMortgage.mCounty.in_(county_data)
                 )
-                
-        if year:
-            data = data.filter(
-                NDTnewMortgage.mYear == year
-            )
-        if period:
-            period = period[1]
-            data = data.filter(
-                NDTnewMortgage.mQuarter == period
-            )
             
         if request.isdaterange:
-            if request.daterange["startdate"] and request.daterange["enddate"]:
+            if request.daterange["startdate"] and request.daterange["enddate"]:  
                 start_date = request.daterange["startdate"]
                 end_date = request.daterange["enddate"]
                 start_date = start_date.split('-')
                 start_date = (start_date[2]+"-"+start_date[0]+"-"+start_date[1])
                 end_date = end_date.split('-')
                 end_date = (end_date[2]+"-"+end_date[0]+"-"+end_date[1])
-                print(f"Start Date {start_date}")
-                print(f"End Date {end_date}")
                 data = data.filter(
                     NDTnewMortgage.mDate.between(start_date, end_date)
+                )
+        else:
+            if year:
+                data = data.filter(
+                    NDTnewMortgage.mYear == year
+                )
+            if period:
+                period = period[1]
+                data = data.filter(
+                    NDTnewMortgage.mQuarter == period
                 )
             
             
@@ -149,29 +211,6 @@ class Query_Schema():
         # print(data.all())
   
         return data.all()
-
-        # if request.lenders != []:
-        #     data = Query_Schema.query(data,lenders=request.lenders)
-
-
-        # if request.loantypes:
-        #     data = Query_Schema.query(data,loantypes = request.loantypes)
-
-
-        # if request.refionly == True:
-        #     data = Query_Schema.query(data,refionly = request.refionly)
-        
-        # if request.loantypessub != []:
-        #     loantypessub = Helper.loan_types_sub_convert(request.loantypessub)
-        #     data = Query_Schema.query(data,loantypessub=loantypessub)
-
-        # if request.loantypessubbypass == True:
-        #     data = Query_Schema.query(data,loantypessubbypass = request.loantypessubbypass)
-        
-        # if request.loanmin != "" or request.loanmax != "":
-        #     data = Query_Schema.query(data,loanmin=request.loanmin, loanmax=request.loanmax)
-
-
 
 
     @classmethod
@@ -191,191 +230,7 @@ class Query_Schema():
         ).all()
                 
         return pmm_data, oth_data
-        
-    @classmethod
-    def query(cls,
-              data,
-              loanpurpose = None,
-              usecodegroup = None,
-              usecode = None,
-              lendertype = None,
-              loantypes = None,
-              refionly = None,
-              loantypessubbypass = None,
-              loanmin = None,
-              loanmax = None,
-              allowcustomregion = None,
-              t_state = None,
-              t_time_period = None,
-              state = None,
-              county = None,
-              year = None,
-              lenders = None,
-              loantypessub = None,
-              start_date = None,
-              end_date = None
-            ):
 
-        if loanpurpose:
-            if loanpurpose == "Purchase":
-                data = data.filter(
-                    NDTnewMortgage.mLoanUse == "PMM"
-                    )
-            elif loanpurpose == "Non-Purchase":
-                data = data.filter(
-                    NDTnewMortgage.mLoanUse == "OTH"
-                    )
-            elif loanpurpose == "Any":
-                data = data
-   
-        if usecodegroup:
-            if usecodegroup == "ANY" and  usecode == "All":
-                data = data
-
-            elif  usecodegroup == "RES" and  usecode == "All":
-                data = data.filter(
-                    NDTnewMortgage.mPropType == usecodegroup
-                    )
-            elif  usecodegroup == "COM" and  usecode == "All":
-                data = data.filter(
-                    NDTnewMortgage.mPropType == usecodegroup
-                    )
-            else:
-                usecode = usecode.upper()
-
-                data = data.filter(
-                    NDTnewMortgage.mPropType == usecodegroup,
-                    NDTnewMortgage.mPropSubTP == usecode 
-                    )  
-
-        if lendertype:
-            if lendertype == "Any":
-                data = data
-            else:
-                data =  data.filter(
-                    NDTnewMortgage.mLenderType == lendertype
-                )
-        
-        if loantypes:
-            if loantypes == "All":
-                data = data
-            elif loantypes == "Conforming":
-                data =  data.filter(
-                    NDTnewMortgage.mCONFORMING == "T"
-                )
-            elif loantypes == "Jumbo":
-                data =  data.filter(
-                    NDTnewMortgage.mJUMBO == "T"
-                )
-        
-        if refionly:
-            data = data.filter(
-                    NDTnewMortgage.mLoanUse != "PMM"
-                    )
-
-        if loantypessub:
-            if "mARM" in loantypessub:
-                data = data.filter(
-                    NDTnewMortgage.mARM == "T"
-                )
-
-            if "mFHA" in loantypessub:
-                data = data.filter(
-                    NDTnewMortgage.mFHA == "T"
-                )
-
-            if "mHMEQ" in loantypessub:
-                data = data.filter(
-                    NDTnewMortgage.mHMEQ == "T"
-                )
-
-            if "mHELOC" in loantypessub:
-                data = data.filter(
-                    NDTnewMortgage.mHELOC == "T"
-                )
-
-            if "mReverse" in loantypessub:
-                data = data.filter(
-                    NDTnewMortgage.mReverse == "T"
-                )
-
-            if "mVHA" in loantypessub:
-                data = data.filter(
-                    NDTnewMortgage.mFHA == "T"
-                )
-                
-        if loantypessubbypass:
-            data = data.filter(
-                    NDTnewMortgage.mHELOC == "T",
-                    NDTnewMortgage.mHMEQ == "T",
-                    NDTnewMortgage.mLoanUse != "PMM"
-                    )
-
-        if loanmin or loanmax:
-            if loanmin != "" and loanmax == "":
-                data = data.filter(
-                    NDTnewMortgage.mAmount >= int(loanmin),
-                    )
-            elif loanmax != "" and loanmin == "":
-                data = data.filter(
-                    NDTnewMortgage.mAmount <= int(loanmax),
-                    )
-            elif loanmin != "" and loanmax != "":
-                data = data.filter(
-                    NDTnewMortgage.mAmount.between(int(loanmin),int(loanmax)),
-                    )
-        
-        
-        if allowcustomregion:
-
-            if t_state and t_time_period:
-                data = data.filter(
-                        NDTnewMortgage.mState.in_(t_state)
-                        )
-                # print(t_state)
-                # all_data = []
-                # for period in t_time_period:
-                #     if period == "Q1":
-                #         row_period = int(period[1].split("Q")[1])
-                #     elif period == "Q2":
-                #         row_period = int(period[1].split("Q")[1])
-                #     elif period == "Q3":
-                #         row_period = int(period[1].split("Q")[1])
-                #     elif period == "Q4":
-                #         row_period = int(period[1].split("Q")[1])
-
-                #         all_data.append(data)
-            # return all_data
-
-        if state:
-            data = data.filter(
-                NDTnewMortgage.mState.in_(state)
-            )
-
-        if county:
-            data = data.filter(or_(
-                NDTnewMortgage.mCounty.in_(county),
-                NDTnewMortgage.mState.in_(state)
-            ))
-
-        if year:
-            data = data.filter(
-                NDTnewMortgage.mYear.in_(year)
-            )
-
-        if start_date and end_date:
-            data = data.filter(
-                NDTnewMortgage.mDate.between(start_date,end_date)
-            )
-
-        if lenders:
-            data = data.filter(
-                NDTnewMortgage.mLenderName.in_(lenders)
-            )
-
-
-
-        return data
 
 class SaveQuery():
 

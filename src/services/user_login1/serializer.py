@@ -73,7 +73,13 @@ class UsersSerializer(BaseModel):
 
 
 class QuerySerializer(BaseModel):
+    allowcustomregion: Optional[bool] = True # I am not sure about this
+    reporttype: Optional[constr(min_length=1)] = "Ranking Report"
     reportrank: constr(min_length=1) = "$ Volume"
+    reportformat: Optional[constr(min_length=1)] = "HTML"
+    reporting: Optional[dict] = {}
+    ltext: Optional[constr(min_length=0)] = ""
+
     loanpurpose: Optional[constr(min_length=1)] = "Any"
     usecode = {
         "_uiSelectChoiceDisabled": Optional[bool],
@@ -84,6 +90,16 @@ class QuerySerializer(BaseModel):
     lendertype: Optional[constr(min_length=1)] = "Any"
     lenderstodisplay: Optional[constr(min_length=1)] = "5"
     lenders: Optional[list] = []
+    
+    loantypes: Optional[constr(min_length=1)] = "All"
+    loantypessub: Optional[list] = []
+    refionly: Optional[bool] = True
+    excl_usahud: Optional[bool] = True
+    loantypessubbypass: Optional[bool] = False
+    loanmax: Optional[constr(min_length=0)]
+    loanmin: Optional[constr(min_length=0)]
+    
+    
     customregion: Optional[bool] = False
     state: Optional[list] = []
     summarizeby: Optional[constr(min_length=1)] = "State Level" # County Level
@@ -96,27 +112,14 @@ class QuerySerializer(BaseModel):
         "enddate": Optional[constr(min_length=0)]
     }
     
-    allowcustomregion: Optional[bool] = True # I am not sure about this
     brokerlenderbypass: Optional[bool] = False # Remaining
 
-    censustract: Optional[list]
-    citytown: Optional[list]
-    excl_usahud: Optional[bool]
-    
-    loanmax: Optional[constr(min_length=0)]
-    loanmin: Optional[constr(min_length=0)]
-    loantypes: Optional[constr(min_length=1)]
-    loantypessub: Optional[list]
-    loantypessubbypass: Optional[bool]
+    censustract: Optional[list] # Not mapped in web
+    citytown: Optional[list]    # Not mapped in web
+    zipcode: Optional[list]     # Not mapped in web
     lt = {
         "lendertypesetup": Optional[bool]
     }
-    ltext: Optional[constr(min_length=0)]
-    refionly: Optional[bool]
-    reportformat: Optional[constr(min_length=1)]
-    reporting: Optional[dict]
-    reporttype: Optional[constr(min_length=1)]
-    zipcode: Optional[list]
 
 
 class SaveSerializer(BaseModel):
