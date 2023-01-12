@@ -17,6 +17,14 @@ class User_Schena():
         return data
 
 class Query_Schema():
+    
+    @classmethod
+    def state_data(cls,db):
+        data = db.query(
+            NDTnewMortgage.mState
+        ).distinct().all()
+        
+        return data
 
     @classmethod
     def master_query(cls, db, request:QuerySerializer, year = None, period = None, state = None, county = None):
@@ -166,11 +174,20 @@ class Query_Schema():
         if request.customregion:
             if request.summarizeby == "State Level":
                 state_data = []
-                for each in request.state:
-                    state_data.append(each["state"])
-                data = data.filter(
-                    NDTnewMortgage.mState.in_(state_data)
-                )
+                if request.state[0]["state"] == "All":
+                    state_distinct_data = Query_Schema.state_data(db)
+                    for each in state_distinct_data:
+                        state_data.append(each[0])
+                    data = data.filter(
+                        NDTnewMortgage.mState.in_(state_data)
+                    )
+                else:
+                    for each in request.state:
+                        state_data.append(each["state"])
+                    data = data.filter(
+                        NDTnewMortgage.mState.in_(state_data)
+                    )
+
             elif request.summarizeby == "County Level":
                 county_data = []
                 state_data =[]

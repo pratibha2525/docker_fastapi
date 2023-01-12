@@ -102,11 +102,15 @@ class Helper():
             
             if request.customregion == True:
                 if request.summarizeby == "State Level":
-                    state = []
-                    for state_value in request.state:
-                        state.append(state_value["state"])
-                    state_str = ' ,'.join([str(elem) for elem in state])
-                    regions = f"All Regions in {state_str}"
+                    
+                    if request.state[0]["state"] == "All":
+                        regions = f"All Regions in All State"
+                    else:
+                        state = []
+                        for state_value in request.state:
+                            state.append(state_value["state"])
+                        state_str = ' ,'.join([str(elem) for elem in state])
+                        regions = f"All Regions in {state_str}"
 
                 elif request.summarizeby == "County Level":
                     county_lst = []
@@ -157,11 +161,14 @@ class Helper():
             
             if request.customregion == True:
                 if request.summarizeby == "State Level":
-                    state = []
-                    for state_value in request.state:
-                        state.append(state_value["state"])
-                    state_str = ' ,'.join([str(elem) for elem in state])
-                    regions = f"All Regions in {state_str}"
+                    if request.state[0]["state"] == "All":
+                        regions = f"All Regions in All State"
+                    else:
+                        state = []
+                        for state_value in request.state:
+                            state.append(state_value["state"])
+                        state_str = ' ,'.join([str(elem) for elem in state])
+                        regions = f"All Regions in {state_str}"
 
                 elif request.summarizeby == "County Level":
                     county_lst = []
@@ -346,13 +353,20 @@ class Users_Module():
                     report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
                 else:
                     if request.summarizeby == "State Level":
-                        state_data = []
-                        for each in request.state:
-                            state_data.append(each["state"])
+                        if request.state[0]["state"] == "All":
+                            state_distinct_data = Query_Schema.state_data(db)
+                            state_data = []
+                            for each in state_distinct_data:
+                                state_data.append(each[0])
+                        else:
+                            state_data = []
+                            for each in request.state:
+                                state_data.append(each["state"])
                         for state in state_data:
                             data = Query_Schema.master_query(db, request,state=state)
                             reportheader_ary.extend(Helper.reportheader_ary(request,state=state))
                             report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+
                     elif request.summarizeby == "County Level":
                         county_data = []
                         for each in request.county:
@@ -373,9 +387,17 @@ class Users_Module():
                             report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
                 else:
                     if request.summarizeby == "State Level":
-                        state_data = []
-                        for each in request.state:
-                            state_data.append(each["state"])
+                        if request.state[0]["state"] == "All":
+                            state_distinct_data = Query_Schema.state_data(db)
+                            state_data = []
+                            for each in state_distinct_data:
+                                state_data.append(each[0])
+                        else:
+                            state_data = []
+                            for each in request.state:
+                                state_data.append(each["state"])
+                            
+                        
                         for state in state_data:
                             for year in year_data:
                                 for period in period_data:
