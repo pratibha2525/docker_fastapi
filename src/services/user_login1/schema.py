@@ -1,9 +1,9 @@
 from sqlalchemy import or_
 from src.db.database import get_db
 from src.db.models import Users, NDTnewMortgage,U_Queries
-from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer, LoadSerializer, DeleteSerializer
+from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer, LoadSerializer, DeleteSerializer, UpdateSerializer,LogoutSerializer
 from sqlalchemy import func
-
+import sqlalchemy
 class User_Schena():
 
     @classmethod
@@ -33,7 +33,8 @@ class Query_Schema():
             func.sum(NDTnewMortgage.mAmount).label("pmm_value"),
             func.count(NDTnewMortgage.mLenderName).label("pmm_count")
         ).filter(
-            NDTnewMortgage.mLoanUse == "PMM"
+            NDTnewMortgage.mLoanUse == "PMM",
+            NDTnewMortgage.mLenderName.not_ilike('Miscellaneous%')
         ).group_by(NDTnewMortgage.mLenderName).subquery()
         
         oth_data = db.query(
@@ -41,7 +42,8 @@ class Query_Schema():
             func.sum(NDTnewMortgage.mAmount).label("oth_value"),
             func.count(NDTnewMortgage.mLenderName).label("oth_count")
         ).filter(
-            NDTnewMortgage.mLoanUse == "OTH"
+            NDTnewMortgage.mLoanUse == "OTH",
+            NDTnewMortgage.mLenderName.not_ilike('Miscellaneous%')
         ).group_by(NDTnewMortgage.mLenderName).subquery()
 
         data = db.query(
@@ -279,6 +281,31 @@ class SaveQuery():
         ).first()
 
         return q_id
+    
+    @classmethod
+    def update_query(cls,request:UpdateSerializer,db):
+        data = db.query(
+            U_Queries
+        ).filter(
+            U_Queries.q_id == request.q_id,
+            U_Queries.usr_id == request.usr_id
+        )
+        
+        data.update({
+            U_Queries.q_name : request.q_name
+        })
+        db.commit()
+       
+        return data
+
+    # @classmethod
+    # def logout_query(cls,request:LogoutSerializer,db):
+        
+    #     if request.q_id:
+    #         to_encode = data.copy()
+
+    #     return True   
+
 
 class ListQuery():
 

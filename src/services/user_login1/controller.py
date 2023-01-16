@@ -25,7 +25,7 @@ from src.utils.sso import generate_token
 from src.config.constant import UserConstant
 from src.utils.logger_utils import LoggerUtil
 from src.services.user_login1.schema import User_Schena, Query_Schema, SaveQuery, ListQuery, DeleteQuery
-from src.services.user_login1.serializer import QuerySerializer, UsersSerializer,SaveSerializer,CsvSerializer,LoadSerializer,DeleteSerializer
+from src.services.user_login1.serializer import QuerySerializer, UsersSerializer,SaveSerializer,CsvSerializer,LoadSerializer,DeleteSerializer, UpdateSerializer,LogoutSerializer
 
 load_dotenv() # take invironment variables from .env
 
@@ -479,9 +479,28 @@ class Users_Module():
         final_data = {}
         final_data["q_id"] = save_query.q_id
         return ResponseUtil.success_response(final_data,message="Success")
+    
+    @classmethod
+    async def updateq(cls,request:UpdateSerializer,db):
+        print("i am here")
+        update_query = SaveQuery.update_query(request,db)
+        final_data = {}
+        final_data["q_id"] = request.q_id
+        final_data["usr_id"] = request.usr_id
+        final_data["q_name"] = request.q_name
 
+        return ResponseUtil.success_response(final_data,message="Success")
+    
+    @classmethod
+    # async def logoutq(token: str = Depends(login.access_token)):
+    #     expires(0,token)
+    #     return {"response": "Logged out"}
+    async def logoutq(cls,request:LogoutSerializer,db):
+        final_data = {}
+        final_data["message"] = "Logout succesfully"
+        return ResponseUtil.success_response(final_data,message="Success")
 
-
+    
     @classmethod
     async def listq(cls,request:LoadSerializer,db):
         liste_query = ListQuery.list_query(request,db)

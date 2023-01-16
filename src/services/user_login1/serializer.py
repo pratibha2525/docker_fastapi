@@ -169,9 +169,18 @@ class SaveSerializer(BaseModel):
         "zipcode": list
     }
 
+class UpdateSerializer(BaseModel):
+    q_id: Optional[conint()]
+    usr_id: Optional[conint()]
+    q_name : Optional[constr(min_length=1)]
+
+class LogoutSerializer(BaseModel):
+    q_id: conint()
+    # acces_token: constr(min_length=1)
+
 class LoadSerializer(BaseModel):
     usr_id: int
-
+    
 class DeleteSerializer(BaseModel):
     q_id: int
     usr_id: int
