@@ -25,6 +25,17 @@ class Query_Schema():
         ).distinct().all()
         
         return data
+    
+    @classmethod
+    def county_data(cls,db,county_data):
+        data = db.query(
+            NDTnewMortgage.mCounty,
+            NDTnewMortgage.mState
+        ).filter(
+            NDTnewMortgage.mState.in_(county_data)
+        ).distinct().all()
+        
+        return data
 
     @classmethod
     def master_query(cls, db, request:QuerySerializer, year = None, period = None, state = None, county = None):
@@ -191,15 +202,25 @@ class Query_Schema():
                     )
 
             elif request.summarizeby == "County Level":
-                county_data = []
-                state_data =[]
-                for each in request.county:
-                    county_data.append(each["county"])
-                    state_data.append(each["state"])
-                data = data.filter(
-                    NDTnewMortgage.mState.in_(state_data),
-                    NDTnewMortgage.mCounty.in_(county_data)
-                )
+                if request.county[0]["county"] == "All":
+                    state_data = []
+                    for each in request.county:
+                        state_data.append(each["state"])
+                    county_data = Query_Schema.county_data(db,county_data=state_data)
+                    data = data.filter(
+                        NDTnewMortgage.mState.in_(state_data),
+                        NDTnewMortgage.mCounty.in_(county_data[0])
+                    )
+                else:
+                    county_data = []
+                    state_data =[]
+                    for each in request.county:
+                        county_data.append(each["county"])
+                        state_data.append(each["state"])
+                    data = data.filter(
+                        NDTnewMortgage.mState.in_(state_data),
+                        NDTnewMortgage.mCounty.in_(county_data)
+                    )
         else:
             if state:
                 data = data.filter(

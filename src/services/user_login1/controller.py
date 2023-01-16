@@ -113,12 +113,20 @@ class Helper():
                         regions = f"All Regions in {state_str}"
 
                 elif request.summarizeby == "County Level":
-                    county_lst = []
-                    for i in request.county:
-                        county_lst.append(i["county"] + " County")
-                        county_lst.append(i["state"] +" ")
-                    county_str = ' ,'.join([str(elem) for elem in county_lst])
-                    regions = county_str
+                    if request.county[0]["county"] == "All":
+                        county_lst = []
+                        for i in request.county:
+                            county_lst.append(i["county"] + " County")
+                            county_lst.append(i["state"] +" ")
+                        county_str = ' ,'.join([str(elem) for elem in county_lst])
+                        regions = county_str
+                    else:
+                        county_lst = []
+                        for i in request.county:
+                            county_lst.append(i["county"] + " County")
+                            county_lst.append(i["state"] +" ")
+                        county_str = ' ,'.join([str(elem) for elem in county_lst])
+                        regions = county_str
                 ary = []
                 ary.append(proprty_type)
                 ary.append("Skyward Techno.")
@@ -171,12 +179,15 @@ class Helper():
                         regions = f"All Regions in {state_str}"
 
                 elif request.summarizeby == "County Level":
-                    county_lst = []
-                    for i in request.county:
-                        county_lst.append(i["county"] + " County")
-                        county_lst.append(i["state"] +" ")
-                    county_str = ' ,'.join([str(elem) for elem in county_lst])
-                    regions = county_str
+                    if request.county[0]["state"] == "All":
+                        regions = f"All County"
+                    else:
+                        county_lst = []
+                        for i in request.county:
+                            county_lst.append(i["county"] + " County")
+                            county_lst.append(i["state"] +" ")
+                        county_str = ' ,'.join([str(elem) for elem in county_lst])
+                        regions = county_str
                 ary = []
                 ary.append(proprty_type)
                 ary.append("Skyward Techno.")
@@ -368,9 +379,15 @@ class Users_Module():
                             report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
 
                     elif request.summarizeby == "County Level":
-                        county_data = []
-                        for each in request.county:
-                            county_data.append([each["county"], each["state"]])
+                        if request.county[0]["county"] == "All":
+                            state_data = []
+                            for each in request.county:
+                                state_data.append(each["state"])
+                            county_data = Query_Schema.county_data(db,county_data=state_data)
+                        else:    
+                            county_data = []
+                            for each in request.county:
+                                county_data.append([each["county"], each["state"]])
                         for county in county_data:
                             data = Query_Schema.master_query(db, request,county=county)
                             reportheader_ary.extend(Helper.reportheader_ary(request,county=county))
@@ -406,9 +423,15 @@ class Users_Module():
                                     report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
 
                     elif request.summarizeby == "County Level":
-                        county_data = []
-                        for each in request.county:
-                            county_data.append([each["county"], each["state"]])
+                        if request.county[0]["county"] == "All":
+                            state_data = []
+                            for each in request.county:
+                                state_data.append(each["state"])
+                            county_data = Query_Schema.county_data(db,county_data=state_data)
+                        else:    
+                            county_data = []
+                            for each in request.county:
+                                county_data.append([each["county"], each["state"]])
                         for county in county_data:
                             for year in year_data:
                                 for period in period_data:
