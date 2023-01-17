@@ -202,10 +202,20 @@ class Query_Schema():
                     )
 
             elif request.summarizeby == "County Level":
-                if request.county[0]["county"] == "All":
+                if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
                     state_data = []
                     for each in request.county:
                         state_data.append(each["state"])
+                    county_data = Query_Schema.county_data(db,county_data=state_data)
+                    data = data.filter(
+                        NDTnewMortgage.mState.in_(state_data),
+                        NDTnewMortgage.mCounty.in_(county_data[0])
+                    )
+                elif request.county[0]["county"] == "All" and request.county[0]["state"] == "All":
+                    state_distinct_data = Query_Schema.state_data(db)
+                    state_data = []
+                    for each in state_distinct_data:
+                        state_data.append(each[0])
                     county_data = Query_Schema.county_data(db,county_data=state_data)
                     data = data.filter(
                         NDTnewMortgage.mState.in_(state_data),

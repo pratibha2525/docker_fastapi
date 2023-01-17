@@ -113,13 +113,15 @@ class Helper():
                         regions = f"All Regions in {state_str}"
 
                 elif request.summarizeby == "County Level":
-                    if request.county[0]["county"] == "All":
+                    if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
                         county_lst = []
                         for i in request.county:
                             county_lst.append(i["county"] + " County")
                             county_lst.append(i["state"] +" ")
                         county_str = ' ,'.join([str(elem) for elem in county_lst])
                         regions = county_str
+                    elif request.county[0]["county"] == "All" and request.county[0]["state"] == "All":
+                        regions = "All Regions in All County in All State"
                     else:
                         county_lst = []
                         for i in request.county:
@@ -180,7 +182,7 @@ class Helper():
 
                 elif request.summarizeby == "County Level":
                     if request.county[0]["state"] == "All":
-                        regions = f"All County"
+                        regions = f"All County In all State"
                     else:
                         county_lst = []
                         for i in request.county:
@@ -192,7 +194,7 @@ class Helper():
                 ary.append(proprty_type)
                 ary.append("Skyward Techno.")
                 ary.append(regions)
-                ary.append(f"{request.daterange['startdate']} - {request.daterange['enddate']}")
+                ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
                 ary.append(request.reportrank)
                 ary.append(created_at)
                 reportheader_ary.append(ary)
@@ -202,7 +204,7 @@ class Helper():
                     ary.append(proprty_type)
                     ary.append("Skyward Techno.")
                     ary.append(f"All Regions in State of {state}")
-                    ary.append(f"{request.daterange['startdate']} - {request.daterange['enddate']}")
+                    ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
                     ary.append(request.reportrank)
                     ary.append(created_at)
                     reportheader_ary.append(ary)
@@ -213,10 +215,11 @@ class Helper():
                     ary.append(proprty_type)
                     ary.append("Skyward Techno.")
                     ary.append(f"All Regions in {county[0]} County, {county[1]}")
-                    ary.append(f"{request.daterange['startdate']} - {request.daterange['enddate']}")
+                    ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
                     ary.append(request.reportrank)
                     ary.append(created_at)
                     reportheader_ary.append(ary)
+        print(reportheader_ary)
         return reportheader_ary
     
     @classmethod
@@ -379,10 +382,16 @@ class Users_Module():
                             report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
 
                     elif request.summarizeby == "County Level":
-                        if request.county[0]["county"] == "All":
+                        if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
                             state_data = []
                             for each in request.county:
                                 state_data.append(each["state"])
+                            county_data = Query_Schema.county_data(db,county_data=state_data)
+                        elif request.county[0]["county"] == "All" and request.county[0]["state"] == "All":
+                            state_distinct_data = Query_Schema.state_data(db)
+                            state_data = []
+                            for each in state_distinct_data:
+                                state_data.append(each[0])
                             county_data = Query_Schema.county_data(db,county_data=state_data)
                         else:    
                             county_data = []
@@ -423,10 +432,18 @@ class Users_Module():
                                     report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
 
                     elif request.summarizeby == "County Level":
-                        if request.county[0]["county"] == "All":
+                        if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
+                            print("i am here in all county pr state")
                             state_data = []
                             for each in request.county:
                                 state_data.append(each["state"])
+                            county_data = Query_Schema.county_data(db,county_data=state_data)
+                        elif request.county[0]["county"] == "All" and request.county[0]["state"] == "All":
+                            print("i am here in all county All state")
+                            state_distinct_data = Query_Schema.state_data(db)
+                            state_data = []
+                            for each in state_distinct_data:
+                                state_data.append(each[0])
                             county_data = Query_Schema.county_data(db,county_data=state_data)
                         else:    
                             county_data = []
