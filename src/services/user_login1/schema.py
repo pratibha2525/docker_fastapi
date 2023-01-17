@@ -259,10 +259,61 @@ class Query_Schema():
                     NDTnewMortgage.mYear == year
                 )
             if period:
-                period = period[1]
-                data = data.filter(
-                    NDTnewMortgage.mQuarter == period
-                )
+                if period == "Annual":
+                    pass
+                elif period == "January":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 1
+                    )
+                elif period == "February":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 2
+                    )
+                elif period == "March":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 3
+                    )
+                elif period == "April":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 4
+                    )
+                elif period == "May":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 5
+                    )
+                elif period == "June":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 6
+                    )
+                elif period == "July":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 7
+                    )
+                elif period == "August":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 8
+                    )
+                elif period == "September":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 9
+                    )
+                elif period == "October":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 10
+                    )
+                elif period == "November":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 11
+                    )
+                elif period == "December":
+                    data = data.filter(
+                        NDTnewMortgage.mMonth == 12
+                    )
+                else:
+                    period = period[1]
+                    data = data.filter(
+                        NDTnewMortgage.mQuarter == period
+                    )
             
             
         if request.lenderstodisplay:

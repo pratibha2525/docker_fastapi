@@ -522,7 +522,7 @@ class Users_Module():
     
     @classmethod
     async def updateq(cls,request:UpdateSerializer,db):
-        print("i am here")
+
         update_query = SaveQuery.update_query(request,db)
         final_data = {}
         final_data["q_id"] = request.q_id

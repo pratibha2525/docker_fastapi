@@ -26,6 +26,43 @@ class Lo_Users(Base):
     usr_sso = db.Column(db.Text,nullable=True)
 
 
+class BK_New_Mortgage(Base):
+    __tablename__ = "BK.new_mortgage"
+    id = db.Column(db.Integer,primary_key=True,index=True)
+    mState =db.Column(db.String ,nullable=True)
+    mCounty =db.Column(db.String ,nullable=True)
+    mCity =db.Column(db.String,nullable=True)
+    mZipcode =db.Column(db.String ,nullable=True)
+    mCensusTrac =db.Column(db.String ,nullable=True)
+    mPropType =db.Column(db.String ,nullable=True)
+    mDate=  db.Column(db.DateTime,nullable=True)
+    mYear = db.Column(db.Integer,nullable=True) 
+    mMonth= db.Column(db.Integer,nullable=True)
+    mQuarter =db.Column(db.Integer,nullable=True)
+    mLenderName = db.Column(db.String ,nullable=True)
+    mAmount =db.Column(db.Integer,nullable=True)
+    mVHA = db.Column(db.String ,nullable=True)
+    mFHA= db.Column(db.String ,nullable=True)
+    mReverse = db.Column(db.String ,nullable=True)
+    mARM = db.Column(db.String ,nullable=True)
+    mHMEQ = db.Column(db.String ,nullable=True)
+    mHELOC = db.Column(db.String ,nullable=True)
+    mCONFORMING = db.Column(db.String ,nullable=True)
+    mJUMBO= db.Column(db.String ,nullable=True)
+    mLoanUse = db.Column(db.String ,nullable=True)
+    mLenderType = db.Column(db.String,nullable=True)
+    mPropSubTP = db.Column(db.String ,nullable=True)
+    mTRANID = db.Column(db.String ,nullable=True)
+    mOrigID= db.Column(db.String ,nullable=True)
+    mOrigName = db.Column(db.String ,nullable=True)
+    mLDRPhone= db.Column(db.String ,nullable=True)
+    mDocNum = db.Column(db.String,nullable=True)
+    mBook = db.Column(db.String,nullable=True)
+    mPage = db.Column(db.String,nullable=True)
+    mMultiAPN = db.Column(db.String,nullable=True)
+    mRecordType = db.Column(db.String,nullable=True)
+    mLUDate = db.Column(db.DateTime,default=datetime.now)
+
 class U_Loqueries(Base):
     __tablename__ = "u_lo_queries"
     q_id = db.Column(db.Integer,primary_key=True,index=True)
