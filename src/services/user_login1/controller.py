@@ -358,7 +358,7 @@ class Users_Module():
 
     @classmethod
     async def query(cls, request:QuerySerializer,db,Authorize):
-        Helper.jwt_require(Authorize=Authorize)
+        # Helper.jwt_require(Authorize=Authorize)
 
         reportheader_ary = []
         report_ary = []
