@@ -5,6 +5,7 @@ import csv
 import boto3
 import os
 from random import randint
+from fastapi import status
 
 from fpdf import FPDF
 from botocore.config import Config
@@ -16,7 +17,7 @@ from pydantic import BaseModel
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.sql import alias
 from fastapi import APIRouter,Depends
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 from src.utils.response_utils import ResponseUtil
@@ -34,7 +35,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 class Settings(BaseModel):
     authjwt_secret_key:str=os.getenv("AUTHJWT_SECRET_KEY")
-
+ 
 @AuthJWT.load_config
 def get_config():
     return Settings()
@@ -44,16 +45,25 @@ class Helper():
     @classmethod
     def loan_types_sub_convert(cls,loan_types_sub):
         loan_types_sub_convert = []
-        for loan_type in loan_types_sub:
-            if loan_type == "Home Equity Loan":
-                loan_types_sub = "mHMEQ"
-                loan_types_sub_convert.append(loan_types_sub)
-            else:
-                loan_types_sub = "m" + loan_type
-                loan_types_sub_convert.append(loan_types_sub)
+        try:
+            for loan_type in loan_types_sub:
+                if loan_type == "Home Equity Loan":
+                    loan_types_sub = "mHMEQ"
+                    loan_types_sub_convert.append(loan_types_sub)
+                else:
+                    loan_types_sub = "m" + loan_type
+                    loan_types_sub_convert.append(loan_types_sub)
+        
+            return loan_types_sub_convert
+        except:
+            return ResponseUtil.error_response(response_code = status.HTTP_400_BAD_REQUEST,message = "somehing went wrong")
 
-        return loan_types_sub_convert
-
+    @classmethod
+    def jwt_require(cls,Authorize):
+        try:
+            Authorize.jwt_required()
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token")
 
     @classmethod
     def upload_to_aws(cls,local_file, bucket, s3_file):
@@ -90,137 +100,140 @@ class Helper():
     def reportheader_ary(cls,request:QuerySerializer, year = None, period = None, state = None, county = None):
         reportheader_ary = []
         created_at = str(datetime.now())
-        if year and period:
-            if request.usecode["usecodegroup"] == "ANY" and  request.usecode["usecode"] == "All":
-                proprty_type = "All Properties"
-            elif request.usecode["usecodegroup"] == "RES" and  request.usecode["usecode"] == "All":
-                proprty_type = "All Residentials"
-            elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
-                proprty_type = "All Commericals"
-            else:
-                proprty_type = request.usecode["usecodegroup"] + " " + request.usecode["usecode"]
-            
-            if request.customregion == True:
-                if request.summarizeby == "State Level":
-                    
-                    if request.state[0]["state"] == "All":
-                        regions = f"All Regions in All State"
-                    else:
-                        state = []
-                        for state_value in request.state:
-                            state.append(state_value["state"])
-                        state_str = ' ,'.join([str(elem) for elem in state])
-                        regions = f"All Regions in {state_str}"
+        try:
+            if year and period:
+                if request.usecode["usecodegroup"] == "ANY" and  request.usecode["usecode"] == "All":
+                    proprty_type = "All Properties"
+                elif request.usecode["usecodegroup"] == "RES" and  request.usecode["usecode"] == "All":
+                    proprty_type = "All Residentials"
+                elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
+                    proprty_type = "All Commericals"
+                else:
+                    proprty_type = request.usecode["usecodegroup"] + " " + request.usecode["usecode"]
+                
+                if request.customregion == True:
+                    if request.summarizeby == "State Level":
+                        
+                        if request.state[0]["state"] == "All":
+                            regions = f"All Regions in All State"
+                        else:
+                            state = []
+                            for state_value in request.state:
+                                state.append(state_value["state"])
+                            state_str = ' ,'.join([str(elem) for elem in state])
+                            regions = f"All Regions in {state_str}"
 
-                elif request.summarizeby == "County Level":
-                    if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
-                        county_lst = []
-                        for i in request.county:
-                            county_lst.append(i["county"] + " County")
-                            county_lst.append(i["state"] +" ")
-                        county_str = ' ,'.join([str(elem) for elem in county_lst])
-                        regions = county_str
-                    elif request.county[0]["county"] == "All" and request.county[0]["state"] == "All":
-                        regions = "All Regions in All County in All State"
-                    else:
-                        county_lst = []
-                        for i in request.county:
-                            county_lst.append(i["county"] + " County")
-                            county_lst.append(i["state"] +" ")
-                        county_str = ' ,'.join([str(elem) for elem in county_lst])
-                        regions = county_str
-                ary = []
-                ary.append(proprty_type)
-                ary.append("Skyward Techno.")
-                ary.append(regions)
-                ary.append(f"{year} {period}")
-                ary.append(request.reportrank)
-                ary.append(created_at)
-                reportheader_ary.append(ary)
-            else:
-                if request.summarizeby == "State Level":
-
+                    elif request.summarizeby == "County Level":
+                        if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
+                            county_lst = []
+                            for i in request.county:
+                                county_lst.append(i["county"] + " County")
+                                county_lst.append(i["state"] +" ")
+                            county_str = ' ,'.join([str(elem) for elem in county_lst])
+                            regions = county_str
+                        elif request.county[0]["county"] == "All" and request.county[0]["state"] == "All":
+                            regions = "All Regions in All County in All State"
+                        else:
+                            county_lst = []
+                            for i in request.county:
+                                county_lst.append(i["county"] + " County")
+                                county_lst.append(i["state"] +" ")
+                            county_str = ' ,'.join([str(elem) for elem in county_lst])
+                            regions = county_str
                     ary = []
                     ary.append(proprty_type)
                     ary.append("Skyward Techno.")
-                    ary.append(f"All Regions in State of {state}")
+                    ary.append(regions)
                     ary.append(f"{year} {period}")
                     ary.append(request.reportrank)
                     ary.append(created_at)
                     reportheader_ary.append(ary)
+                else:
+                    if request.summarizeby == "State Level":
 
-                elif request.summarizeby == "County Level":
+                        ary = []
+                        ary.append(proprty_type)
+                        ary.append("Skyward Techno.")
+                        ary.append(f"All Regions in State of {state}")
+                        ary.append(f"{year} {period}")
+                        ary.append(request.reportrank)
+                        ary.append(created_at)
+                        reportheader_ary.append(ary)
+
+                    elif request.summarizeby == "County Level":
+                        ary = []
+                        ary.append(proprty_type)
+                        ary.append("Skyward Techno.")
+                        ary.append(f"All Regions in {county[0]} County, {county[1]}")
+                        ary.append(f"{year} {period}")
+                        ary.append(request.reportrank)
+                        ary.append(created_at)
+                        reportheader_ary.append(ary)
+            else:
+                if request.usecode["usecodegroup"] == "ANY" and  request.usecode["usecode"] == "All":
+                    proprty_type = "All Properties"
+                elif request.usecode["usecodegroup"] == "RES" and  request.usecode["usecode"] == "All":
+                    proprty_type = "All Residentials"
+                elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
+                    proprty_type = "All Commericals"
+                else:
+                    proprty_type = request.usecode["usecodegroup"] + " " + request.usecode["usecode"]
+                
+                if request.customregion == True:
+                    if request.summarizeby == "State Level":
+                        if request.state[0]["state"] == "All":
+                            regions = f"All Regions in All State"
+                        else:
+                            state = []
+                            for state_value in request.state:
+                                state.append(state_value["state"])
+                            state_str = ' ,'.join([str(elem) for elem in state])
+                            regions = f"All Regions in {state_str}"
+
+                    elif request.summarizeby == "County Level":
+                        if request.county[0]["state"] == "All":
+                            regions = f"All County In all State"
+                        else:
+                            county_lst = []
+                            for i in request.county:
+                                county_lst.append(i["county"] + " County")
+                                county_lst.append(i["state"] +" ")
+                            county_str = ' ,'.join([str(elem) for elem in county_lst])
+                            regions = county_str
                     ary = []
                     ary.append(proprty_type)
                     ary.append("Skyward Techno.")
-                    ary.append(f"All Regions in {county[0]} County, {county[1]}")
-                    ary.append(f"{year} {period}")
-                    ary.append(request.reportrank)
-                    ary.append(created_at)
-                    reportheader_ary.append(ary)
-
-        else:
-            if request.usecode["usecodegroup"] == "ANY" and  request.usecode["usecode"] == "All":
-                proprty_type = "All Properties"
-            elif request.usecode["usecodegroup"] == "RES" and  request.usecode["usecode"] == "All":
-                proprty_type = "All Residentials"
-            elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
-                proprty_type = "All Commericals"
-            else:
-                proprty_type = request.usecode["usecodegroup"] + " " + request.usecode["usecode"]
-            
-            if request.customregion == True:
-                if request.summarizeby == "State Level":
-                    if request.state[0]["state"] == "All":
-                        regions = f"All Regions in All State"
-                    else:
-                        state = []
-                        for state_value in request.state:
-                            state.append(state_value["state"])
-                        state_str = ' ,'.join([str(elem) for elem in state])
-                        regions = f"All Regions in {state_str}"
-
-                elif request.summarizeby == "County Level":
-                    if request.county[0]["state"] == "All":
-                        regions = f"All County In all State"
-                    else:
-                        county_lst = []
-                        for i in request.county:
-                            county_lst.append(i["county"] + " County")
-                            county_lst.append(i["state"] +" ")
-                        county_str = ' ,'.join([str(elem) for elem in county_lst])
-                        regions = county_str
-                ary = []
-                ary.append(proprty_type)
-                ary.append("Skyward Techno.")
-                ary.append(regions)
-                ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
-                ary.append(request.reportrank)
-                ary.append(created_at)
-                reportheader_ary.append(ary)
-            else:
-                if request.summarizeby == "State Level":
-                    ary = []
-                    ary.append(proprty_type)
-                    ary.append("Skyward Techno.")
-                    ary.append(f"All Regions in State of {state}")
+                    ary.append(regions)
                     ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
                     ary.append(request.reportrank)
                     ary.append(created_at)
                     reportheader_ary.append(ary)
+                else:
+                    if request.summarizeby == "State Level":
+                        ary = []
+                        ary.append(proprty_type)
+                        ary.append("Skyward Techno.")
+                        ary.append(f"All Regions in State of {state}")
+                        ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
+                        ary.append(request.reportrank)
+                        ary.append(created_at)
+                        reportheader_ary.append(ary)
 
-                elif request.summarizeby == "County Level":
+                    elif request.summarizeby == "County Level":
 
-                    ary = []
-                    ary.append(proprty_type)
-                    ary.append("Skyward Techno.")
-                    ary.append(f"All Regions in {county[0]} County, {county[1]}")
-                    ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
-                    ary.append(request.reportrank)
-                    ary.append(created_at)
-                    reportheader_ary.append(ary)
-        print(reportheader_ary)
-        return reportheader_ary
+                        ary = []
+                        ary.append(proprty_type)
+                        ary.append("Skyward Techno.")
+                        ary.append(f"All Regions in {county[0]} County, {county[1]}")
+                        ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
+                        ary.append(request.reportrank)
+                        ary.append(created_at)
+                        reportheader_ary.append(ary)
+            print(reportheader_ary)
+            return reportheader_ary
+        except:
+            return ResponseUtil.error_response(response_code = status.HTTP_500_INTERNAL_SERVER_ERROR,message = "somehing wrong in reportheader_ary")
+
     
     @classmethod
     def report_ary(cls, data, pmm_data, oth_data):
@@ -244,11 +257,11 @@ class Helper():
                     x, 
                     f"{randint(10,99)}",
                     f"{randint(10,99)}",
-                    f"${i.total_value}" if i.total_value else f"${0}",
+                    "${:,.2f}".format(i.total_value) if i.total_value else f"${0}",
                     f"{i.total_count}" if i.total_count else f"{0}",
-                    f"${i.pmm_value}" if i.pmm_value else f"${0}",
+                    "${:,.2f}".format(i.pmm_value) if i.pmm_value else f"${0}",
                     f"{i.pmm_count}" if i.pmm_count else f"{0}",
-                    f"${i.oth_value}" if i.oth_value else f"${0}",
+                    "${:,.2f}".format(i.oth_value) if i.oth_value else f"${0}",
                     f"{i.oth_count}" if i.oth_count else f"{0}",
                     f"{round(per_total_value,2)}%",
                     f"{round(per_pmm_value,2)}%",
@@ -276,11 +289,11 @@ class Helper():
                 '',
                 '',
                 '',
-                f"${remaining_value}" if remaining_value else f"${0}",
+                "${:,.2f}".format(remaining_value) if remaining_value else f"${0}",
                 f"{remaining_count}" if remaining_count else f"0",
-                f"${remaining_pmm_value}" if t_pmm_value else f"${0}",
+                "${:,.2f}".format(remaining_pmm_value) if t_pmm_value else f"${0}",
                 f"{t_pmm_count}" if t_pmm_count else f"0",
-                f"${remaining_oth_value}" if t_oth_value else f"${0}",
+                "${:,.2f}".format(remaining_oth_value) if t_oth_value else f"${0}",
                 f"{t_oth_count}" if t_oth_count else f"0",
                 f"{round(remaining_per_total_value,2)}%",
                 f"{round(remaining_per_pmm_value,2)}%",
@@ -295,11 +308,11 @@ class Helper():
                 '',
                 '',
                 '',
-                f"${all_value}" if all_value else f"${0}",
+                "${:,.2f}".format(all_value) if all_value else f"${0}",
                 f"{all_count}" if all_count else f"0",
-                f"${pmm_data[0].pmm_value}" if pmm_data[0].pmm_value else f"${0}",
+                "${:,.2f}".format(pmm_data[0].pmm_value) if pmm_data[0].pmm_value else f"${0}",
                 f"{pmm_data[0].pmm_count}" if pmm_data[0].pmm_count else f"0",
-                f"${oth_data[0].oth_value}" if oth_data[0].oth_value else f"${0}",
+                "${:,.2f}".format(oth_data[0].oth_value) if oth_data[0].oth_value else f"${0}",
                 f"{oth_data[0].oth_count}" if oth_data[0].oth_count else f"0",
                 "100%",
                 "100%",
@@ -319,17 +332,15 @@ class Users_Module():
         try:
             user = User_Schena.user_login(request.usr_email,db)
         except Exception as e:
+            LoggerUtil.error(UserConstant.ERROR_MESSAGE)
             return ResponseUtil.error_response(message = UserConstant.ERROR_MESSAGE)
 
         try:
             if user != None:
                 LoggerUtil.info(UserConstant.USER_GET)
                 if (user.usr_username==request.usr_username) and (user.usr_password==request.usr_password):
-                    access_token=Authorize.create_access_token(subject=user.usr_id)
-                    refresh_token=Authorize.create_refresh_token(subject=user.usr_id)
-                    # expires = datetime.timedelta(days=1)
-                    # token = Authorize.create_access_token(subject="test",expires_time=expires)
-                    # return {"token": token}
+                    access_token=Authorize.create_access_token(subject=user.usr_id,expires_time = timedelta(minutes=1440))
+                    refresh_token=Authorize.create_refresh_token(subject=user.usr_id,expires_time = timedelta(minutes=1440))
                     data = {"access_token": access_token,"refresh_token": refresh_token}
                     LoggerUtil.info(UserConstant.LOGIN_SUCCESS)
                     return ResponseUtil.success_response(data,message=UserConstant.LOGIN_SUCCESS)
@@ -347,114 +358,135 @@ class Users_Module():
 
     @classmethod
     async def query(cls, request:QuerySerializer,db,Authorize):
-
-        # try:
-        #     Authorize.jwt_required()
-        # except Exception as e:
-        #     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token")
-
-        # current_user=Authorize.get_jwt_subject()
+        Helper.jwt_require(Authorize=Authorize)
 
         reportheader_ary = []
         report_ary = []
+        try:
+            if (len(request.year) > 0 and len(request.period) > 0) or request.isdaterange:
+                pmm_data, oth_data = Query_Schema.get_all_data(db)
+                if request.isdaterange:
+                    if request.customregion:
+                        LoggerUtil.info(UserConstant.COUNTY_STATE)
+                        data = Query_Schema.master_query(db, request)
+                        reportheader_ary.extend(Helper.reportheader_ary(request))
+                        report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                    else:
+                        LoggerUtil.info(UserConstant.GET_STATE)
+                        if request.summarizeby == "State Level":
+                            if request.state[0]["state"] == "All":
+                                LoggerUtil.info(UserConstant.GET_STATE_P)
+                                state_distinct_data = Query_Schema.state_data(db)
+                                state_data = []
+                                for each in state_distinct_data:
+                                    state_data.append(each[0])
+                            else:
+                                LoggerUtil.info(UserConstant.GET_STATE_ONLY)
+                                state_data = []
+                                for each in request.state:
+                                    state_data.append(each["state"])                
+                            for state in state_data:
+                                data = Query_Schema.master_query(db, request,state=state)
+                                LoggerUtil.info(UserConstant.STATE_REPORTHEADER)
+                                reportheader_ary.extend(Helper.reportheader_ary(request,state=state))
+                                LoggerUtil.info(UserConstant.STATE_REPORT_ARY)
+                                report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
 
-        if (len(request.year) > 0 and len(request.period) > 0) or request.isdaterange:
-            pmm_data, oth_data = Query_Schema.get_all_data(db)
-            if request.isdaterange:
-                if request.customregion:
-                    data = Query_Schema.master_query(db, request)
-                    reportheader_ary.extend(Helper.reportheader_ary(request))
-                    report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                            LoggerUtil.info(UserConstant.GET_COUNTY)
+                        elif request.summarizeby == "County Level":
+                            LoggerUtil.info(UserConstant.COUNTY_STATE)
+                            if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
+                                state_data = []
+                                for each in request.county:
+                                    state_data.append(each["state"])
+                                county_data = Query_Schema.county_data(db,county_data=state_data)
+                                LoggerUtil.info(UserConstant.GET_STATE_P)
+                            elif request.county[0]["county"] == "All" and request.county[0]["state"] == "All":
+                                state_distinct_data = Query_Schema.state_data(db)
+                                state_data = []
+                                for each in state_distinct_data:
+                                    state_data.append(each[0])
+                                    LoggerUtil.info(UserConstant.GET_STATE_P)
+                                county_data = Query_Schema.county_data(db,county_data=state_data)
+                            else:
+                                LoggerUtil.info(UserConstant.COUNTY_STATE)    
+                                county_data = []
+                                for each in request.county:
+                                    county_data.append([each["county"], each["state"]])
+                                LoggerUtil.info(UserConstant.COUNTY_STATE)
+                            for county in county_data:
+                                data = Query_Schema.master_query(db, request,county=county)
+                                reportheader_ary.extend(Helper.reportheader_ary(request,county=county))
+                                report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+
                 else:
-                    if request.summarizeby == "State Level":
-                        if request.state[0]["state"] == "All":
-                            state_distinct_data = Query_Schema.state_data(db)
-                            state_data = []
-                            for each in state_distinct_data:
-                                state_data.append(each[0])
-                        else:
-                            state_data = []
-                            for each in request.state:
-                                state_data.append(each["state"])
-                        for state in state_data:
-                            data = Query_Schema.master_query(db, request,state=state)
-                            reportheader_ary.extend(Helper.reportheader_ary(request,state=state))
-                            report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                    LoggerUtil.info(UserConstant.YEAR_PERIOD)
+                    year_data = request.year
+                    period_data = request.period
+                    if request.customregion:
+                        for year in year_data:
+                            for period in period_data:
+                                data = Query_Schema.master_query(db, request, year, period)
+                                reportheader_ary.extend(Helper.reportheader_ary(request, year=year, period=period))
+                                report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                    else:
+                        LoggerUtil.info(UserConstant.COUNTY_STATE)
+                        if request.summarizeby == "State Level":
+                            if request.state[0]["state"] == "All":
+                                state_distinct_data = Query_Schema.state_data(db)
+                                state_data = []
+                                for each in state_distinct_data:
+                                    state_data.append(each[0])
+                            else:
+                                LoggerUtil.info(UserConstant.COUNTY_STATE)
+                                state_data = []
+                                for each in request.state:
+                                    state_data.append(each["state"])
+                                
+                                LoggerUtil.info(UserConstant.YEAR_PERIOD_STATE)
+                            for state in state_data:
+                                for year in year_data:
+                                    for period in period_data:
+                                        data = Query_Schema.master_query(db, request, year, period, state=state)
+                                        reportheader_ary.extend(Helper.reportheader_ary(request, year=year, period=period, state=state))
+                                        LoggerUtil.info(UserConstant.COUNTY_STATE)
+                                        report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
 
-                    elif request.summarizeby == "County Level":
-                        if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
-                            state_data = []
-                            for each in request.county:
-                                state_data.append(each["state"])
-                            county_data = Query_Schema.county_data(db,county_data=state_data)
-                        elif request.county[0]["county"] == "All" and request.county[0]["state"] == "All":
-                            state_distinct_data = Query_Schema.state_data(db)
-                            state_data = []
-                            for each in state_distinct_data:
-                                state_data.append(each[0])
-                            county_data = Query_Schema.county_data(db,county_data=state_data)
-                        else:    
-                            county_data = []
-                            for each in request.county:
-                                county_data.append([each["county"], each["state"]])
-                        for county in county_data:
-                            data = Query_Schema.master_query(db, request,county=county)
-                            reportheader_ary.extend(Helper.reportheader_ary(request,county=county))
-                            report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
-
-            else:
-                year_data = request.year
-                period_data = request.period
-                if request.customregion:
-                    for year in year_data:
-                        for period in period_data:
-                            data = Query_Schema.master_query(db, request, year, period)
-                            reportheader_ary.extend(Helper.reportheader_ary(request, year=year, period=period))
-                            report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
-                else:
-                    if request.summarizeby == "State Level":
-                        if request.state[0]["state"] == "All":
-                            state_distinct_data = Query_Schema.state_data(db)
-                            state_data = []
-                            for each in state_distinct_data:
-                                state_data.append(each[0])
-                        else:
-                            state_data = []
-                            for each in request.state:
-                                state_data.append(each["state"])
-                            
-                        
-                        for state in state_data:
-                            for year in year_data:
-                                for period in period_data:
-                                    data = Query_Schema.master_query(db, request, year, period, state=state)
-                                    reportheader_ary.extend(Helper.reportheader_ary(request, year=year, period=period, state=state))
-                                    report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
-
-                    elif request.summarizeby == "County Level":
-                        if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
-                            print("i am here in all county pr state")
-                            state_data = []
-                            for each in request.county:
-                                state_data.append(each["state"])
-                            county_data = Query_Schema.county_data(db,county_data=state_data)
-                        elif request.county[0]["county"] == "All" and request.county[0]["state"] == "All":
-                            print("i am here in all county All state")
-                            state_distinct_data = Query_Schema.state_data(db)
-                            state_data = []
-                            for each in state_distinct_data:
-                                state_data.append(each[0])
-                            county_data = Query_Schema.county_data(db,county_data=state_data)
-                        else:    
-                            county_data = []
-                            for each in request.county:
-                                county_data.append([each["county"], each["state"]])
-                        for county in county_data:
-                            for year in year_data:
-                                for period in period_data:
-                                    data = Query_Schema.master_query(db, request, year, period, county=county)
-                                    reportheader_ary.extend(Helper.reportheader_ary(request, year=year, period=period, county=county))
-                                    report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                            LoggerUtil.info(UserConstant.GET_COUNTY)
+                        elif request.summarizeby == "County Level":
+                            LoggerUtil.info(UserConstant.COUNTY_STATE)
+                            if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
+                                print("i am here in all county pr state")
+                                state_data = []
+                                for each in request.county:
+                                    state_data.append(each["state"])
+                                    LoggerUtil.info(UserConstant.COUNTY_STATE)
+                                county_data = Query_Schema.county_data(db,county_data=state_data)
+                                LoggerUtil.info(UserConstant.COUNTY_STATE)
+                            elif request.county[0]["county"] == "All" and request.county[0]["state"] == "All":
+                                print("i am here in all county All state")
+                                state_distinct_data = Query_Schema.state_data(db)
+                                state_data = []
+                                for each in state_distinct_data:
+                                    state_data.append(each[0])
+                                print("state all in county :- ",state_data)
+                                county_data = Query_Schema.county_data(db,county_data=state_data)
+                                print("i am county data in both all :- ", len(county_data))
+                            else:
+                                LoggerUtil.info(UserConstant.COUNTY_STATE)    
+                                county_data = []
+                                for each in request.county:
+                                    county_data.append([each["county"], each["state"]])
+                                    LoggerUtil.info(UserConstant.YEAR_PERIOD_COUNTY)
+                            for county in county_data:
+                                for year in year_data:
+                                    for period in period_data:
+                                        data = Query_Schema.master_query(db, request, year, period, county=county)
+                                        reportheader_ary.extend(Helper.reportheader_ary(request, year=year, period=period, county=county))
+                                        report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+        except:
+            LoggerUtil.error("Internl server error")
+            return ResponseUtil.error_response(response_code = status.HTTP_500_INTERNAL_SERVER_ERROR,message = "Internl server error")
 
         subheader = ["All Mortgages","Purchase Mortgages","Non Purchase Mortgages",f"Mkt Shr by {request.reportrank}(%)"]
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
@@ -515,68 +547,86 @@ class Users_Module():
     @classmethod
     async def saveq(cls,request:SaveSerializer,db):
         save_query = SaveQuery.save_query(request,db)
-
-        final_data = {}
-        final_data["q_id"] = save_query.q_id
-        return ResponseUtil.success_response(final_data,message="Success")
-    
+        try:
+            final_data = {}
+            final_data["q_id"] = save_query.q_id
+            LoggerUtil.info(UserConstant.SAVEQ)
+            return ResponseUtil.success_response(final_data,message="Success")
+        except:
+            return ResponseUtil.error_response(response_code = status.HTTP_422_UNPROCESSABLE_ENTITY,message = "dont save data")
+        
     @classmethod
     async def updateq(cls,request:UpdateSerializer,db):
+        try:
+            update_query = SaveQuery.update_query(request,db)
+            final_data = {}
+            final_data["q_id"] = request.q_id
+            final_data["usr_id"] = request.usr_id
+            final_data["q_name"] = request.q_name
 
-        update_query = SaveQuery.update_query(request,db)
-        final_data = {}
-        final_data["q_id"] = request.q_id
-        final_data["usr_id"] = request.usr_id
-        final_data["q_name"] = request.q_name
-
-        return ResponseUtil.success_response(final_data,message="Success")
+            LoggerUtil.info(UserConstant.UPDATEQ)
+            return ResponseUtil.success_response(final_data,message="Success")
+        except:
+            return ResponseUtil.error_response(response_code = status.HTTP_400_BAD_REQUEST,message = "dont update data")
     
     @classmethod
     # async def logoutq(token: str = Depends(login.access_token)):
     #     expires(0,token)
     #     return {"response": "Logged out"}
     async def logoutq(cls,request:LogoutSerializer,db):
-        final_data = {}
-        final_data["message"] = "Logout succesfully"
-        return ResponseUtil.success_response(final_data,message="Success")
+        try:
+            final_data = {}
+            final_data["message"] = "Logout succesfully"
+            LoggerUtil.info(UserConstant.LOGOUTQ)
+            return ResponseUtil.success_response(final_data,message="Success")
+        except:
+            return ResponseUtil.error_response(response_code = status.HTTP_500_INTERNAL_SERVER_ERROR,message = "internal server error")
 
     
     @classmethod
     async def listq(cls,request:LoadSerializer,db):
         liste_query = ListQuery.list_query(request,db)
         final_list_data = []
+        try:
+            for list_data in liste_query:
+                data = {}
+                data["q_id"] = list_data.q_id
+                data["usr_id"] = list_data.usr_id
+                data["q_name"] = list_data.q_name
+                data["q_create_ts"] = str(list_data.q_create_ts)
+                data["q_lastmod"] = str(list_data.q_lastmod)
+                data["q_parms"] = list_data.q_parms
+                final_list_data.append(data)
 
-        for list_data in liste_query:
-            data = {}
-            data["q_id"] = list_data.q_id
-            data["usr_id"] = list_data.usr_id
-            data["q_name"] = list_data.q_name
-            data["q_create_ts"] = str(list_data.q_create_ts)
-            data["q_lastmod"] = str(list_data.q_lastmod)
-            data["q_parms"] = list_data.q_parms
-            final_list_data.append(data)
+            final_data = {}
+            final_data["data"] = final_list_data
 
-        final_data = {}
-        final_data["data"] = final_list_data
-
-        return ResponseUtil.success_response(final_data,message="Success")
+            LoggerUtil.info(UserConstant.LISTQ)
+            return ResponseUtil.success_response(final_data,message="Success")
+        except:
+            return ResponseUtil.error_response(response_code = status.HTTP_404_NOT_FOUND,message = "list is not found")
 
     @classmethod
     async def deleteq(cls,request:DeleteSerializer,db):
         delete_query = DeleteQuery.delete_query(request,db)
-
-        final_data = {}
-        final_data["q_id"] = request.q_id
-        final_data["usr_id"] = request.usr_id
-        final_data["countaffected"] = 1
-        return ResponseUtil.success_response(final_data,message="Success")
+        try:
+            final_data = {}
+            final_data["q_id"] = request.q_id
+            final_data["usr_id"] = request.usr_id
+            final_data["countaffected"] = 1
+            LoggerUtil.info(UserConstant.DELETEQ)
+            return ResponseUtil.success_response(final_data,message="Success")
+        except:
+            return ResponseUtil.error_response(response_code = status.HTTP_400_BAD_REQUEST,message = "bad request")
 
     @classmethod
     async def csv(cls,request:CsvSerializer):
-
+        
+        LoggerUtil.info(UserConstant.CSV_REPORT)
         cur_report_header_ary = request.cur_report_header_ary
         first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
-
+        
+        LoggerUtil.info(UserConstant.CSV_ARY)
         cur_report_ary = request.cur_report_ary
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
 
@@ -596,7 +646,11 @@ class Users_Module():
                 writer.writerow(subtitle)
                 try:
                     writer.writerows(cur_report_ary[i])
+                    writer.writerow(" ")
+                    writer.writerow(" ")
                 except:
+                    writer.writerow(" ")
+                    writer.writerow(" ")
                     pass
 
         Helper.upload_to_aws(local_file=f'{path}/{file_name}.csv',bucket="loanapp-s3",s3_file=f'{file_name}.csv')
@@ -605,16 +659,20 @@ class Users_Module():
 
         url = (url.split("?")[0])
 
+        LoggerUtil.info(UserConstant.CSV)
         return ResponseUtil.success_response(url,message="Success")
 
     @classmethod
     async def txt(cls,request:CsvSerializer):
-
+        
+        LoggerUtil.info(UserConstant.TXT_REPORT)
         cur_report_header_ary = request.cur_report_header_ary
         first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
-
+        
+        LoggerUtil.info(UserConstant.TXT_ARY)
         cur_report_ary = request.cur_report_ary
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
+        
 
         file_name = uuid.uuid4()
         current_path = pathlib.Path().absolute()
@@ -640,14 +698,17 @@ class Users_Module():
         url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.txt')
         url = (url.split("?")[0])
 
+        LoggerUtil.info(UserConstant.TXT)
         return ResponseUtil.success_response(url,message="Success")
 
     @classmethod
     async def xls(cls,request:CsvSerializer):
-
+        
+        LoggerUtil.info(UserConstant.XLS_REPORT)
         cur_report_header_ary = request.cur_report_header_ary
         first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
-
+        
+        LoggerUtil.info(UserConstant.XLS_ARY)
         cur_report_ary = request.cur_report_ary
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
 
@@ -675,15 +736,18 @@ class Users_Module():
         url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.xls')
         url = (url.split("?")[0])
 
+        LoggerUtil.info(UserConstant.XLS)
         return ResponseUtil.success_response(url,message="Success")
 
             
     @classmethod
     async def pdf(cls,request:CsvSerializer):
-
+        
+        LoggerUtil.info(UserConstant.PDF_REPORT)
         cur_report_header_ary = request.cur_report_header_ary
         first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
-
+        
+        LoggerUtil.info(UserConstant.PDF_ARY)
         cur_report_ary = request.cur_report_ary
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
 
@@ -730,4 +794,5 @@ class Users_Module():
         url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.pdf')
         url = (url.split("?")[0])
 
+        LoggerUtil.info(UserConstant.PDF)
         return ResponseUtil.success_response(url,message="Success")
