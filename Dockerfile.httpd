@@ -1,0 +1,5 @@
+FROM httpd:2.4.55-alpine
+MAINTAINER hvkataria12@gmail.com
+COPY httpd/my-httpd.conf /usr/local/apache2/conf/httpd.conf
+COPY httpd/loan-application.conf /usr/local/apache2/conf/extra/httpd-vhosts.conf
+CMD ["httpd", "-D",  "FOREGROUND"]
