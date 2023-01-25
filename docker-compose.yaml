@@ -9,17 +9,19 @@ services:
     restart: unless-stopped        
     networks:
       - loan
-  nginx:
-    image: nginx:alpine
-    container_name: loan-application-nginx
+
+  httpd:
+    build:
+      context: ./
+      dockerfile: Dockerfile.httpd
+    image: loan-application-httpd
+    container_name: loan-application-httpd
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     networks:
       - loan
-    volumes:
-      - ./nginx:/etc/nginx/conf.d/
 networks:
   loan:
      driver: bridge
