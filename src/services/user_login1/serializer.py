@@ -92,7 +92,7 @@ class QuerySerializer(BaseModel):
     lenders: Optional[list] = []
     
     loantypes: Optional[constr(min_length=1)] = "All"
-    loantypessub: Optional[list] = []
+    loantypessub: Optional[list] = []                              
     refionly: Optional[bool] = True
     excl_usahud: Optional[bool] = True
     loantypessubbypass: Optional[bool] = False

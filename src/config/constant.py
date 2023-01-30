@@ -32,4 +32,3 @@ class UserConstant():
     PDF_REPORT = "get report header ary"
     PDF_ARY = "get report ary pdf"
     PDF = "convert into pdf"
-

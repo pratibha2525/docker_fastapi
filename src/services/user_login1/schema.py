@@ -4,6 +4,7 @@ from src.db.models import Users, NDTnewMortgage,U_Queries
 from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer, LoadSerializer, DeleteSerializer, UpdateSerializer,LogoutSerializer
 from sqlalchemy import func
 import sqlalchemy
+
 class User_Schena():
 
     @classmethod

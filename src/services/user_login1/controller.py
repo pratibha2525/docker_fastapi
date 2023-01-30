@@ -18,7 +18,7 @@ from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.sql import alias
 from fastapi import APIRouter,Depends
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
+from dotenv import load_dotenv  
 
 from src.utils.response_utils import ResponseUtil
 from src.db.models import Users, NDTnewMortgage,U_Queries
@@ -142,7 +142,7 @@ class Helper():
                             regions = county_str
                     ary = []
                     ary.append(proprty_type)
-                    ary.append("Skyward Techno.")
+                    ary.append(os.getenv("PREPARED_FOR"))
                     ary.append(regions)
                     ary.append(f"{year} {period}")
                     ary.append(request.reportrank)
@@ -153,7 +153,7 @@ class Helper():
 
                         ary = []
                         ary.append(proprty_type)
-                        ary.append("Skyward Techno.")
+                        ary.append(os.getenv("PREPARED_FOR"))
                         ary.append(f"All Regions in State of {state}")
                         ary.append(f"{year} {period}")
                         ary.append(request.reportrank)
@@ -163,7 +163,7 @@ class Helper():
                     elif request.summarizeby == "County Level":
                         ary = []
                         ary.append(proprty_type)
-                        ary.append("Skyward Techno.")
+                        ary.append(os.getenv("PREPARED_FOR"))
                         ary.append(f"All Regions in {county[0]} County, {county[1]}")
                         ary.append(f"{year} {period}")
                         ary.append(request.reportrank)
@@ -202,7 +202,7 @@ class Helper():
                             regions = county_str
                     ary = []
                     ary.append(proprty_type)
-                    ary.append("Skyward Techno.")
+                    ary.append(os.getenv("PREPARED_FOR"))
                     ary.append(regions)
                     ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
                     ary.append(request.reportrank)
@@ -212,7 +212,7 @@ class Helper():
                     if request.summarizeby == "State Level":
                         ary = []
                         ary.append(proprty_type)
-                        ary.append("Skyward Techno.")
+                        ary.append(os.getenv("PREPARED_FOR"))
                         ary.append(f"All Regions in State of {state}")
                         ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
                         ary.append(request.reportrank)
@@ -223,7 +223,7 @@ class Helper():
 
                         ary = []
                         ary.append(proprty_type)
-                        ary.append("Skyward Techno.")
+                        ary.append(os.getenv("PREPARED_FOR"))
                         ary.append(f"All Regions in {county[0]} County, {county[1]}")
                         ary.append(f"{request.daterange['startdate']} / {request.daterange['enddate']}")
                         ary.append(request.reportrank)
@@ -236,7 +236,15 @@ class Helper():
 
     
     @classmethod
-    def report_ary(cls, data, pmm_data, oth_data):
+    def report_ary(cls, data, pmm_data, oth_data, request:QuerySerializer):
+        print("i aam here")
+        print(request.brokerlenderbypass)
+        print(type(request.brokerlenderbypass))
+        if request.brokerlenderbypass == True:
+            print(1)
+        else:
+            print(2)
+        
         reportheader_ary = []
         report_ary = []
         internal_row_data = []
@@ -251,6 +259,10 @@ class Helper():
             per_total_value = (float(i.total_value) * 100 / float(all_value) if i.total_value else 0)
             per_pmm_value = (float(i.pmm_value) * 100 / float(pmm_data[0].pmm_value) if i.pmm_value else 0)
             per_oth_value = (float(i.oth_value) * 100 / float(oth_data[0].oth_value) if i.oth_value else 0)
+            if request.brokerlenderbypass == True:
+                pass
+            else:
+                pass
             internal_row_data.append(
                 [
                     f"{i.mLenderName}",
@@ -370,7 +382,7 @@ class Users_Module():
                         LoggerUtil.info(UserConstant.COUNTY_STATE)
                         data = Query_Schema.master_query(db, request)
                         reportheader_ary.extend(Helper.reportheader_ary(request))
-                        report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                        report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data, request=request))
                     else:
                         LoggerUtil.info(UserConstant.GET_STATE)
                         if request.summarizeby == "State Level":
@@ -390,7 +402,7 @@ class Users_Module():
                                 LoggerUtil.info(UserConstant.STATE_REPORTHEADER)
                                 reportheader_ary.extend(Helper.reportheader_ary(request,state=state))
                                 LoggerUtil.info(UserConstant.STATE_REPORT_ARY)
-                                report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                                report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data, request=request))
 
                             LoggerUtil.info(UserConstant.GET_COUNTY)
                         elif request.summarizeby == "County Level":
@@ -417,7 +429,7 @@ class Users_Module():
                             for county in county_data:
                                 data = Query_Schema.master_query(db, request,county=county)
                                 reportheader_ary.extend(Helper.reportheader_ary(request,county=county))
-                                report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                                report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data, request=request))
 
                 else:
                     LoggerUtil.info(UserConstant.YEAR_PERIOD)
@@ -428,7 +440,7 @@ class Users_Module():
                             for period in period_data:
                                 data = Query_Schema.master_query(db, request, year, period)
                                 reportheader_ary.extend(Helper.reportheader_ary(request, year=year, period=period))
-                                report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                                report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data, request=request))
                     else:
                         LoggerUtil.info(UserConstant.COUNTY_STATE)
                         if request.summarizeby == "State Level":
@@ -450,7 +462,7 @@ class Users_Module():
                                         data = Query_Schema.master_query(db, request, year, period, state=state)
                                         reportheader_ary.extend(Helper.reportheader_ary(request, year=year, period=period, state=state))
                                         LoggerUtil.info(UserConstant.COUNTY_STATE)
-                                        report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                                        report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data, request=request))
 
                             LoggerUtil.info(UserConstant.GET_COUNTY)
                         elif request.summarizeby == "County Level":
@@ -469,9 +481,11 @@ class Users_Module():
                                 state_data = []
                                 for each in state_distinct_data:
                                     state_data.append(each[0])
-                                print("state all in county :- ",state_data)
+                                print("All state in all county :- ",state_data)
+                                print("len of state :- ",len(state_data))
                                 county_data = Query_Schema.county_data(db,county_data=state_data)
-                                print("i am county data in both all :- ", len(county_data))
+                                print("all county data and all state :- ", county_data)
+                                print("len of all county data and all state :- ", len(county_data))
                             else:
                                 LoggerUtil.info(UserConstant.COUNTY_STATE)    
                                 county_data = []
@@ -483,7 +497,7 @@ class Users_Module():
                                     for period in period_data:
                                         data = Query_Schema.master_query(db, request, year, period, county=county)
                                         reportheader_ary.extend(Helper.reportheader_ary(request, year=year, period=period, county=county))
-                                        report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data))
+                                        report_ary.extend(Helper.report_ary(data=data, pmm_data=pmm_data, oth_data=oth_data, request=request))
         except:
             LoggerUtil.error("Internl server error")
             return ResponseUtil.error_response(response_code = status.HTTP_500_INTERNAL_SERVER_ERROR,message = "Internl server error")
@@ -640,9 +654,10 @@ class Users_Module():
             writer.writerow(first_header)
 
             for i in range (len(cur_report_header_ary)):
+                header = [f"Rank by {cur_report_header_ary[i][4]}","","","","All Mortgages","","Purchase Mortgages","","Non Purchase Mortgages","",f"Mkt Shr by {cur_report_header_ary[i][4]}"]
                 writer.writerow([cur_report_header_ary[i][2]])
                 writer.writerow([cur_report_header_ary[i][3]])
-                writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
+                writer.writerow(header)
                 writer.writerow(subtitle)
                 try:
                     writer.writerows(cur_report_ary[i])
@@ -671,33 +686,45 @@ class Users_Module():
         
         LoggerUtil.info(UserConstant.TXT_ARY)
         cur_report_ary = request.cur_report_ary
-        subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
-        
+        subtitle = ["Lender Name\t","All\t","P\t","N\t","Total Value\t","Total Number\t","Total Value\t","Total Number\t","Total Value\t","Total Number\t","All\t","P\t","NP\t"]
 
         file_name = uuid.uuid4()
         current_path = pathlib.Path().absolute()
         path = f'{current_path}/src/files'
         print(current_path)
-        with open(f'{path}/{file_name}.txt', 'w', encoding='UTF8', newline='') as f:
+        with open(f'{path}/{file_name}.csv', 'w', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
 
             writer.writerow(first_header)
 
             for i in range (len(cur_report_header_ary)):
+                header = [f"Rank by {cur_report_header_ary[i][4]}\t\t\t","All Mortgages\t\t","Purchase Mortgages\t\t","Non Purchase Mortgages\t\t",f"Mkt Shr by {cur_report_header_ary[i][4]}"]
                 writer.writerow([cur_report_header_ary[i][2]])
                 writer.writerow([cur_report_header_ary[i][3]])
-                writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
+                writer.writerow(header)
                 writer.writerow(subtitle)
                 try:
+                    for row_lst in cur_report_ary[i]:
+                        for j in range(len(row_lst)):
+                            row_lst[j] = str(row_lst[j]) + "\t"
+                            if str(row_lst[j][0]) == "$":
+                                row_lst[j] = row_lst[j].replace(',',':')
                     writer.writerows(cur_report_ary[i])
+                    writer.writerow(" ")
+                    writer.writerow(" ")
                 except:
+                    writer.writerow(" ")
+                    writer.writerow(" ")
                     pass
 
+        with open(f'{path}/{file_name}.csv', 'r') as f_in, open(f'{path}/{file_name}.txt', 'w') as f_out:
+            content = f_in.read().replace(',', ' ')
+            content = content.replace(':', ',')
+            f_out.write(content)
         Helper.upload_to_aws(local_file=f'{path}/{file_name}.txt',bucket="loanapp-s3",s3_file=f'{file_name}.txt')
         
         url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.txt')
         url = (url.split("?")[0])
-
         LoggerUtil.info(UserConstant.TXT)
         return ResponseUtil.success_response(url,message="Success")
 
@@ -707,7 +734,7 @@ class Users_Module():
         LoggerUtil.info(UserConstant.XLS_REPORT)
         cur_report_header_ary = request.cur_report_header_ary
         first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
-        
+
         LoggerUtil.info(UserConstant.XLS_ARY)
         cur_report_ary = request.cur_report_ary
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
@@ -722,13 +749,18 @@ class Users_Module():
             writer.writerow(first_header)
 
             for i in range (len(cur_report_header_ary)):
+                header = [f"Rank by {cur_report_header_ary[i][4]}","","","","All Mortgages","","Purchase Mortgages","","Non Purchase Mortgages","",f"Mkt Shr by {cur_report_header_ary[i][4]}"]
                 writer.writerow([cur_report_header_ary[i][2]])
                 writer.writerow([cur_report_header_ary[i][3]])
-                writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
+                writer.writerow(header)
                 writer.writerow(subtitle)
                 try:
                     writer.writerows(cur_report_ary[i])
+                    writer.writerow(" ")
+                    writer.writerow(" ")
                 except:
+                    writer.writerow(" ")
+                    writer.writerow(" ")
                     pass
 
         Helper.upload_to_aws(local_file=f'{path}/{file_name}.xls',bucket="loanapp-s3",s3_file=f'{file_name}.xls')
@@ -738,16 +770,18 @@ class Users_Module():
 
         LoggerUtil.info(UserConstant.XLS)
         return ResponseUtil.success_response(url,message="Success")
-
+ 
             
     @classmethod
     async def pdf(cls,request:CsvSerializer):
         
-        LoggerUtil.info(UserConstant.PDF_REPORT)
+        ### XLS to pdf
+        
+        LoggerUtil.info(UserConstant.XLS_REPORT)
         cur_report_header_ary = request.cur_report_header_ary
         first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
-        
-        LoggerUtil.info(UserConstant.PDF_ARY)
+
+        LoggerUtil.info(UserConstant.XLS_ARY)
         cur_report_ary = request.cur_report_ary
         subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
 
@@ -755,44 +789,156 @@ class Users_Module():
         current_path = pathlib.Path().absolute()
         path = f'{current_path}/src/files'
         print(current_path)
-        with open(f'{path}/{file_name}.txt', 'w', encoding='UTF8', newline='') as f:
+        with open(f'{path}/{file_name}.xls', 'w', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
 
             writer.writerow(first_header)
 
             for i in range (len(cur_report_header_ary)):
+                header = [f"Rank by {cur_report_header_ary[i][4]}","","","","All Mortgages","","Purchase Mortgages","","Non Purchase Mortgages","",f"Mkt Shr by {cur_report_header_ary[i][4]}"]
                 writer.writerow([cur_report_header_ary[i][2]])
                 writer.writerow([cur_report_header_ary[i][3]])
-                writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
+                writer.writerow(header)
                 writer.writerow(subtitle)
                 try:
                     writer.writerows(cur_report_ary[i])
+                    writer.writerow(" ")
+                    writer.writerow(" ")
                 except:
+                    writer.writerow(" ")
+                    writer.writerow(" ")
                     pass
-                writer.writerows("\n")
-                writer.writerows("\n")
+        
+        #### TXT to pdf
+        
+        # LoggerUtil.info(UserConstant.TXT_REPORT)
+        # cur_report_header_ary = request.cur_report_header_ary
+        # first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
+        
+        # LoggerUtil.info(UserConstant.TXT_ARY)
+        # cur_report_ary = request.cur_report_ary
+        # subtitle = ["Lender Name\t","All\t","P\t","N\t","Total Value\t","Total Number\t","Total Value\t","Total Number\t","Total Value\t","Total Number\t","All\t","P\t","NP\t"]
+
+        # file_name = uuid.uuid4()
+        # current_path = pathlib.Path().absolute()
+        # path = f'{current_path}/src/files'
+        # print(current_path)
+        # with open(f'{path}/{file_name}.txt', 'w', encoding='UTF8', newline='') as f:
+        #     writer = csv.writer(f)
+
+        #     writer.writerow(first_header)
+
+        #     for i in range (len(cur_report_header_ary)):
+        #         header = [f"Rank by {cur_report_header_ary[i][4]}\t\t\t","All Mortgages\t\t","Purchase Mortgages\t\t","Non Purchase Mortgages\t\t",f"Mkt Shr by {cur_report_header_ary[i][4]}"]
+        #         writer.writerow([cur_report_header_ary[i][2]])
+        #         writer.writerow([cur_report_header_ary[i][3]])
+        #         writer.writerow(header)
+        #         writer.writerow(subtitle)
+        #         try:
+        #             for row_lst in cur_report_ary[i]:
+        #                 for j in range(len(row_lst)):
+        #                     row_lst[j] = str(row_lst[j]) + "\t"
+        #                     if str(row_lst[j][0]) == "$":
+        #                         row_lst[j] = row_lst[j].replace(',',':')
+        #             writer.writerows(cur_report_ary[i])
+        #             writer.writerow(" ")
+        #             writer.writerow(" ")
+        #         except:
+        #             writer.writerow(" ")
+        #             writer.writerow(" ")
+                    # pass
+
+    
+        
+        #### CSV to pdf
+        
+        # LoggerUtil.info(UserConstant.CSV_REPORT)
+        # cur_report_header_ary = request.cur_report_header_ary
+        # first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
+        
+        # LoggerUtil.info(UserConstant.CSV_ARY)
+        # cur_report_ary = request.cur_report_ary
+        # subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
+
+        # file_name = uuid.uuid4()
+        # current_path = pathlib.Path().absolute()
+        # path = f'{current_path}/src/files'
+        # print(current_path)
+        # with open(f'{path}/{file_name}.csv', 'w', encoding='UTF8', newline='') as f:
+        #     writer = csv.writer(f)
+
+        #     writer.writerow(first_header)
+
+        #     for i in range (len(cur_report_header_ary)):
+        #         header = [f"Rank by {cur_report_header_ary[i][4]}","","","","All Mortgages","","Purchase Mortgages","","Non Purchase Mortgages","",f"Mkt Shr by {cur_report_header_ary[i][4]}"]
+        #         writer.writerow([cur_report_header_ary[i][2]])
+        #         writer.writerow([cur_report_header_ary[i][3]])
+        #         writer.writerow(header)
+        #         writer.writerow(subtitle)
+        #         try:
+        #             writer.writerows(cur_report_ary[i])
+        #             writer.writerow(" ")
+        #             writer.writerow(" ")
+        #         except:
+        #             writer.writerow(" ")
+        #             writer.writerow(" ")
+        #             pass
+
+        
+        #### PDF
+        
+        # LoggerUtil.info(UserConstant.PDF_REPORT)
+        # cur_report_header_ary = request.cur_report_header_ary
+        # first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
+        
+        # LoggerUtil.info(UserConstant.PDF_ARY)
+        # cur_report_ary = request.cur_report_ary
+        # subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
+
+        # file_name = uuid.uuid4()
+        # current_path = pathlib.Path().absolute()
+        # path = f'{current_path}/src/files'
+        # print(current_path)
+        # with open(f'{path}/{file_name}.txt', 'w', encoding='UTF8', newline='') as f:
+        #     writer = csv.writer(f)
+
+        #     writer.writerow(first_header)
+
+        #     for i in range (len(cur_report_header_ary)):
+        #         writer.writerow([cur_report_header_ary[i][2]])
+        #         writer.writerow([cur_report_header_ary[i][3]])
+        #         writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
+        #         writer.writerow(subtitle)
+        #         try:
+        #             writer.writerows(cur_report_ary[i])
+        #         except:
+        #             pass
+        #         writer.writerows("\n")
+        #         writer.writerows("\n")
 
 
         '''
         PDF converter
         '''
         
-        txt_reading = open(f'{path}/{file_name}.txt', "r")
+        txt_reading = open(f'{path}/{file_name}.xls', "r")
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Arial", size=7)
+        pdf.set_font("Arial", size=12)
         
         for text in txt_reading:
             pdf.cell(80, 8, txt = text, ln = 1, align = 'L')
             
         pdf.output(f"{path}/{file_name}.pdf")
         
-        os.remove(f'{path}/{file_name}.txt')
+        os.remove(f'{path}/{file_name}.xls')
         
-        Helper.upload_to_aws(local_file=f'{path}/{file_name}.pdf',bucket="loanapp-s3",s3_file=f'{file_name}.pdf')
+        # Helper.upload_to_aws(local_file=f'{path}/{file_name}.pdf',bucket="loanapp-s3",s3_file=f'{file_name}.pdf')
         
-        url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.pdf')
-        url = (url.split("?")[0])
+        # url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.pdf')
+        # url = (url.split("?")[0])
+        url = "null"
 
         LoggerUtil.info(UserConstant.PDF)
         return ResponseUtil.success_response(url,message="Success")
+    
