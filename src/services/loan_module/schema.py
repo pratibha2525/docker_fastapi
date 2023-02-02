@@ -359,9 +359,6 @@ class Query_Schema():
         if request.lenderstodisplay:
             print(f"limit: {request.lenderstodisplay}")
             data = data.limit(request.lenderstodisplay)
-        
-        print(data.all())
-  
         return data.all()
 
 

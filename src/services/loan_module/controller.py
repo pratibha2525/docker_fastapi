@@ -84,8 +84,8 @@ class Helper():
                 proprty_type = "All Properties"
             elif request.usecode["usecodegroup"] == "RES" and  request.usecode["usecode"] == "All":
                 proprty_type = "All Residentials"
-            elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
-                proprty_type = "All Commericals"
+            # elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
+            #     proprty_type = "All Commericals"
             else:
                 proprty_type = request.usecode["usecodegroup"] + " " + request.usecode["usecode"]
             
@@ -153,8 +153,8 @@ class Helper():
                 proprty_type = "All Properties"
             elif request.usecode["usecodegroup"] == "RES" and  request.usecode["usecode"] == "All":
                 proprty_type = "All Residentials"
-            elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
-                proprty_type = "All Commericals"
+            # elif request.usecode["usecodegroup"] == "COM" and  request.usecode["usecode"] == "All":
+            #     proprty_type = "All Commericals"
             else:
                 proprty_type = request.usecode["usecodegroup"] + " " + request.usecode["usecode"]
             
@@ -320,8 +320,8 @@ class Loan_Module():
             if user != None:
                 LoggerUtil.info(UserConstant.USER_GET)
                 if (user.usr_username==request.usr_username) and (user.usr_password==request.usr_password):
-                    access_token=Authorize.create_access_token(subject=user.usr_id,expires_time = timedelta(minutes=1))
-                    refresh_token=Authorize.create_refresh_token(subject=user.usr_id,expires_time = timedelta(minutes=1))
+                    access_token=Authorize.create_access_token(subject=user.usr_id,expires_time = timedelta(minutes=1440))
+                    refresh_token=Authorize.create_refresh_token(subject=user.usr_id,expires_time = timedelta(minutes=1440))
                     data = {"access_token": access_token,"refresh_token": refresh_token}
                     LoggerUtil.info(UserConstant.LOGIN_SUCCESS)
                     return ResponseUtil.success_response(data,message=UserConstant.LOGIN_SUCCESS)

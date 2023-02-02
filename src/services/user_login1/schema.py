@@ -1,9 +1,10 @@
 from sqlalchemy import or_
 from src.db.database import get_db
 from src.db.models import Users, NDTnewMortgage,U_Queries
-from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer, LoadSerializer, DeleteSerializer, UpdateSerializer,LogoutSerializer
+from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer, LoadSerializer, DeleteSerializer, UpdateSerializer,LogoutSerializer, SignUpSerializer, SigninSerializer
 from sqlalchemy import func
 import sqlalchemy
+import uuid
 
 class User_Schena():
 
@@ -16,6 +17,36 @@ class User_Schena():
         ).first()
 
         return data
+    
+    @classmethod
+    def user_signin(cls,request:SigninSerializer,db):
+
+        data = db.query(
+            Users
+        ).filter(
+            Users.usr_email == request.usr_email,
+        ).first()
+        
+        return data
+    
+    @classmethod
+    def user_signup(cls,request:SignUpSerializer,db):
+        sso_token = str(uuid.uuid4())
+        data = Users(
+            usr_username = request.usr_username,
+            usr_email = request.usr_email,
+            usr_password = request.usr_password,
+            usr_sso = sso_token
+        )
+        db.add(data)
+        db.commit()
+        
+        usr_data = db.query(
+            Users
+        ).filter(
+            Users.usr_sso == sso_token
+        ).first()
+        return usr_data
 
 class Query_Schema():
     

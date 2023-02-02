@@ -7,6 +7,8 @@ import os
 from random import randint
 from fastapi import status
 
+import pandas as pd
+import pdfkit
 from fpdf import FPDF
 from botocore.config import Config
 from botocore.exceptions import NoCredentialsError, ClientError
@@ -24,9 +26,10 @@ from src.utils.response_utils import ResponseUtil
 from src.db.models import Users, NDTnewMortgage,U_Queries
 from src.utils.sso import generate_token
 from src.config.constant import UserConstant
+from src.config.pdf_helper import PdfHelper
 from src.utils.logger_utils import LoggerUtil
 from src.services.user_login1.schema import User_Schena, Query_Schema, SaveQuery, ListQuery, DeleteQuery
-from src.services.user_login1.serializer import QuerySerializer, UsersSerializer,SaveSerializer,CsvSerializer,LoadSerializer,DeleteSerializer, UpdateSerializer,LogoutSerializer
+from src.services.user_login1.serializer import QuerySerializer, UsersSerializer,SaveSerializer,CsvSerializer,LoadSerializer,DeleteSerializer, UpdateSerializer,LogoutSerializer, SigninSerializer,SignUpSerializer
 
 load_dotenv() # take invironment variables from .env
 
@@ -121,7 +124,7 @@ class Helper():
                             for state_value in request.state:
                                 state.append(state_value["state"])
                             state_str = ' ,'.join([str(elem) for elem in state])
-                            regions = f"All Regions in {state_str}"
+                            regions = f"All Regions in State of {state_str}"
 
                     elif request.summarizeby == "County Level":
                         if request.county[0]["county"] == "All" and request.county[0]["state"] != "All":
@@ -338,6 +341,33 @@ class Helper():
 ##### MARKET SHARE MODULE (login, run_query, save_query, load_query) #####
 
 class Users_Module():
+    @classmethod
+    async def signup(cls,request:SignUpSerializer,Authorize,db):
+
+        user = User_Schena.user_signup(request,db)
+        data = {}
+        access_token=Authorize.create_access_token(subject=user.usr_id,expires_time = timedelta(minutes=1440))
+        refresh_token=Authorize.create_refresh_token(subject=user.usr_id,expires_time = timedelta(minutes=1440))
+        data["sso_token"] = user.usr_sso
+        data["access_token"] = access_token
+        data["refresh_token"]= refresh_token
+        return ResponseUtil.success_response(data,message=UserConstant.LOGIN_SUCCESS)
+    
+    @classmethod
+    async def signin(cls,request:SigninSerializer,Authorize,db):
+
+        user = User_Schena.user_signin(request,db)
+        
+        if user:
+            data = {}
+            access_token=Authorize.create_access_token(subject=user.usr_id,expires_time = timedelta(minutes=1440))
+            refresh_token=Authorize.create_refresh_token(subject=user.usr_id,expires_time = timedelta(minutes=1440))
+            data["sso_token"] = user.usr_sso
+            data["access_token"] = access_token
+            data["refresh_token"]= refresh_token
+            return ResponseUtil.success_response(data,message=UserConstant.LOGIN_SUCCESS)
+        else:
+            return ResponseUtil.error_response(message = "User not Found")
 
     @classmethod
     async def login(cls,request:UsersSerializer,Authorize,db):
@@ -774,170 +804,18 @@ class Users_Module():
             
     @classmethod
     async def pdf(cls,request:CsvSerializer):
-        
-        ### XLS to pdf
-        
-        LoggerUtil.info(UserConstant.XLS_REPORT)
-        cur_report_header_ary = request.cur_report_header_ary
-        first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
 
-        LoggerUtil.info(UserConstant.XLS_ARY)
-        cur_report_ary = request.cur_report_ary
-        subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
-
-        file_name = uuid.uuid4()
+        html_string = PdfHelper.html_create(request)
         current_path = pathlib.Path().absolute()
         path = f'{current_path}/src/files'
-        print(current_path)
-        with open(f'{path}/{file_name}.xls', 'w', encoding='UTF8', newline='') as f:
-            writer = csv.writer(f)
-
-            writer.writerow(first_header)
-
-            for i in range (len(cur_report_header_ary)):
-                header = [f"Rank by {cur_report_header_ary[i][4]}","","","","All Mortgages","","Purchase Mortgages","","Non Purchase Mortgages","",f"Mkt Shr by {cur_report_header_ary[i][4]}"]
-                writer.writerow([cur_report_header_ary[i][2]])
-                writer.writerow([cur_report_header_ary[i][3]])
-                writer.writerow(header)
-                writer.writerow(subtitle)
-                try:
-                    writer.writerows(cur_report_ary[i])
-                    writer.writerow(" ")
-                    writer.writerow(" ")
-                except:
-                    writer.writerow(" ")
-                    writer.writerow(" ")
-                    pass
-        
-        #### TXT to pdf
-        
-        # LoggerUtil.info(UserConstant.TXT_REPORT)
-        # cur_report_header_ary = request.cur_report_header_ary
-        # first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
-        
-        # LoggerUtil.info(UserConstant.TXT_ARY)
-        # cur_report_ary = request.cur_report_ary
-        # subtitle = ["Lender Name\t","All\t","P\t","N\t","Total Value\t","Total Number\t","Total Value\t","Total Number\t","Total Value\t","Total Number\t","All\t","P\t","NP\t"]
-
-        # file_name = uuid.uuid4()
-        # current_path = pathlib.Path().absolute()
-        # path = f'{current_path}/src/files'
-        # print(current_path)
-        # with open(f'{path}/{file_name}.txt', 'w', encoding='UTF8', newline='') as f:
-        #     writer = csv.writer(f)
-
-        #     writer.writerow(first_header)
-
-        #     for i in range (len(cur_report_header_ary)):
-        #         header = [f"Rank by {cur_report_header_ary[i][4]}\t\t\t","All Mortgages\t\t","Purchase Mortgages\t\t","Non Purchase Mortgages\t\t",f"Mkt Shr by {cur_report_header_ary[i][4]}"]
-        #         writer.writerow([cur_report_header_ary[i][2]])
-        #         writer.writerow([cur_report_header_ary[i][3]])
-        #         writer.writerow(header)
-        #         writer.writerow(subtitle)
-        #         try:
-        #             for row_lst in cur_report_ary[i]:
-        #                 for j in range(len(row_lst)):
-        #                     row_lst[j] = str(row_lst[j]) + "\t"
-        #                     if str(row_lst[j][0]) == "$":
-        #                         row_lst[j] = row_lst[j].replace(',',':')
-        #             writer.writerows(cur_report_ary[i])
-        #             writer.writerow(" ")
-        #             writer.writerow(" ")
-        #         except:
-        #             writer.writerow(" ")
-        #             writer.writerow(" ")
-                    # pass
-
-    
-        
-        #### CSV to pdf
-        
-        # LoggerUtil.info(UserConstant.CSV_REPORT)
-        # cur_report_header_ary = request.cur_report_header_ary
-        # first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
-        
-        # LoggerUtil.info(UserConstant.CSV_ARY)
-        # cur_report_ary = request.cur_report_ary
-        # subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
-
-        # file_name = uuid.uuid4()
-        # current_path = pathlib.Path().absolute()
-        # path = f'{current_path}/src/files'
-        # print(current_path)
-        # with open(f'{path}/{file_name}.csv', 'w', encoding='UTF8', newline='') as f:
-        #     writer = csv.writer(f)
-
-        #     writer.writerow(first_header)
-
-        #     for i in range (len(cur_report_header_ary)):
-        #         header = [f"Rank by {cur_report_header_ary[i][4]}","","","","All Mortgages","","Purchase Mortgages","","Non Purchase Mortgages","",f"Mkt Shr by {cur_report_header_ary[i][4]}"]
-        #         writer.writerow([cur_report_header_ary[i][2]])
-        #         writer.writerow([cur_report_header_ary[i][3]])
-        #         writer.writerow(header)
-        #         writer.writerow(subtitle)
-        #         try:
-        #             writer.writerows(cur_report_ary[i])
-        #             writer.writerow(" ")
-        #             writer.writerow(" ")
-        #         except:
-        #             writer.writerow(" ")
-        #             writer.writerow(" ")
-        #             pass
-
-        
-        #### PDF
-        
-        # LoggerUtil.info(UserConstant.PDF_REPORT)
-        # cur_report_header_ary = request.cur_report_header_ary
-        # first_header =[ f"{cur_report_header_ary[0][0]}  Mortgage Marketshare Report. Prepared for: {cur_report_header_ary[0][1]}"]
-        
-        # LoggerUtil.info(UserConstant.PDF_ARY)
-        # cur_report_ary = request.cur_report_ary
-        # subtitle = ["Lender Name","All","P","N","Total Value","Total Number","Total Value","Total Number","Total Value","Total Number","All","P","NP"]
-
-        # file_name = uuid.uuid4()
-        # current_path = pathlib.Path().absolute()
-        # path = f'{current_path}/src/files'
-        # print(current_path)
-        # with open(f'{path}/{file_name}.txt', 'w', encoding='UTF8', newline='') as f:
-        #     writer = csv.writer(f)
-
-        #     writer.writerow(first_header)
-
-        #     for i in range (len(cur_report_header_ary)):
-        #         writer.writerow([cur_report_header_ary[i][2]])
-        #         writer.writerow([cur_report_header_ary[i][3]])
-        #         writer.writerow(["Rank by" + cur_report_header_ary[i][4]])
-        #         writer.writerow(subtitle)
-        #         try:
-        #             writer.writerows(cur_report_ary[i])
-        #         except:
-        #             pass
-        #         writer.writerows("\n")
-        #         writer.writerows("\n")
+        file_name = uuid.uuid4()
+        options = {'page-size':'A3'}
+        pdfkit.from_string((html_string),f'{path}/{file_name}.pdf',options=options)
 
 
-        '''
-        PDF converter
-        '''
-        
-        txt_reading = open(f'{path}/{file_name}.xls', "r")
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        
-        for text in txt_reading:
-            pdf.cell(80, 8, txt = text, ln = 1, align = 'L')
-            
-        pdf.output(f"{path}/{file_name}.pdf")
-        
-        os.remove(f'{path}/{file_name}.xls')
-        
-        # Helper.upload_to_aws(local_file=f'{path}/{file_name}.pdf',bucket="loanapp-s3",s3_file=f'{file_name}.pdf')
-        
-        # url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.pdf')
-        # url = (url.split("?")[0])
-        url = "null"
+       
+        url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.pdf')
+        url = (url.split("?")[0])
 
         LoggerUtil.info(UserConstant.PDF)
         return ResponseUtil.success_response(url,message="Success")

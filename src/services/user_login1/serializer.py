@@ -168,6 +168,13 @@ class SaveSerializer(BaseModel):
         "year": list,
         "zipcode": list
     }
+class SigninSerializer(BaseModel):
+    usr_email: str
+
+class SignUpSerializer(BaseModel):
+    usr_username: str
+    usr_email: str
+    usr_password: str
 
 class UpdateSerializer(BaseModel):
     q_id: Optional[conint()]

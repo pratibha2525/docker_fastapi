@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from src.db.database import get_db
 from src.services.user_login1.controller import Users_Module
-from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer, CsvSerializer, LoadSerializer, DeleteSerializer, UpdateSerializer,LogoutSerializer
+from src.services.user_login1.serializer import UsersSerializer, QuerySerializer, SaveSerializer, CsvSerializer, LoadSerializer, DeleteSerializer, UpdateSerializer,LogoutSerializer,SigninSerializer, SignUpSerializer
 
 
 ##### MARKET SHARE MODULE (login, run_query, save_query, load_query) #####
@@ -15,6 +15,17 @@ router = APIRouter(prefix="/fa_marketshare")
 @router.post("/login/")
 async def login(request:UsersSerializer,Authorize:AuthJWT=Depends(),db: Session = Depends(get_db)):
     return await Users_Module.login(request,Authorize,db)
+
+@router.post("/signin")
+@router.post("/signin/")
+async def signin(request:SigninSerializer,Authorize:AuthJWT=Depends(),db: Session = Depends(get_db)):
+    return await Users_Module.signin(request,Authorize,db)
+
+@router.post("/signup")
+@router.post("/signup/")
+async def signup(request:SignUpSerializer,Authorize:AuthJWT=Depends(),db: Session = Depends(get_db)):
+    return await Users_Module.signup(request,Authorize,db)
+
 
 @router.post("/q")
 @router.post("/q/")
