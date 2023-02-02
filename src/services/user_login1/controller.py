@@ -813,7 +813,7 @@ class Users_Module():
         pdfkit.from_string((html_string),f'{path}/{file_name}.pdf',options=options)
 
 
-       
+        Helper.upload_to_aws(local_file=f'{path}/{file_name}.pdf',bucket="loanapp-s3",s3_file=f'{file_name}.pdf')
         url = Helper.download_to_aws(bucket_name="loanapp-s3",key = f'{file_name}.pdf')
         url = (url.split("?")[0])
 
