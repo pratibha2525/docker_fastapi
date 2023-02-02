@@ -7,7 +7,7 @@ import os
 from random import randint
 from fastapi import status
 
-import pandas as pd
+
 import pdfkit
 from fpdf import FPDF
 from botocore.config import Config
